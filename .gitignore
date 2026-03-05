@@ -10,10 +10,18 @@ node_modules/
 .env
 .env.*
 !.env.example
+apps/web/.env
+apps/web/.env.*
+apps/api/.env
+apps/api/.env.*
 
-# Backend secrets
-bidit-backend/serviceAccountKey.json
-bidit-backend/.env
+# =========================
+# Firebase & Backend Secrets
+# =========================
+apps/api/serviceAccountKey.json
+apps/api/firebase-adminsdk*.json
+**/serviceAccountKey.json
+**/firebase-adminsdk*.json
 
 # =========================
 # Build Outputs
