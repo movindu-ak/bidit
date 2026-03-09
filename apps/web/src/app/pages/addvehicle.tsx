@@ -3,12 +3,17 @@ import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { vehiclesAPI } from "../../services/api";
+import { auth } from "../../firebase/firebase";
+import { uploadVehicleImages } from "../utils/uploadToFirebase"; // adjust if needed
 
 export function AddVehicle() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [imageInput, setImageInput] = useState("");
+
+  // ✅ NEW: keep real files + preview strings separately
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
   const [formData, setFormData] = useState({
     make: "",
     model: "",
@@ -25,25 +30,42 @@ export function AddVehicle() {
     description: "",
   });
 
-  const handleAddImage = () => {
-    if (!imageInput.trim()) return;
-    if (imageUrls.length >= 6) {
+  // ✅ UPDATED: Handle image selection from device
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    if (imageFiles.length + files.length > 6) {
       toast.error("Maximum 6 images allowed");
       return;
     }
-    setImageUrls((prev) => [...prev, imageInput.trim()]);
-    setImageInput("");
+
+    // 1) store File objects
+    setImageFiles((prev) => [...prev, ...files]);
+
+    // 2) generate previews (base64) for UI only
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // reset input so same file can be re-selected
+    e.target.value = "";
   };
 
+  // ✅ UPDATED: Remove both file + preview by same index
   const handleRemoveImage = (index: number) => {
-    setImageUrls((prev) => prev.filter((_, i) => i !== index));
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-    if (!user) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
       toast.error("Please login to post a vehicle");
       navigate("/auth");
       return;
@@ -57,11 +79,22 @@ export function AddVehicle() {
     try {
       setLoading(true);
 
-      const auctionEndDate = new Date();
-      auctionEndDate.setDate(auctionEndDate.getDate() + Number(formData.auctionDays));
+      const idToken = await currentUser.getIdToken();
+      const firebaseUid = currentUser.uid;
 
+      // ✅ 1) Upload images to Firebase Storage
+      const uploadedUrls =
+        imageFiles.length > 0
+          ? await uploadVehicleImages({ files: imageFiles, firebaseUid })
+          : [];
+
+      const auctionEndDate = new Date();
+      auctionEndDate.setDate(
+        auctionEndDate.getDate() + Number(formData.auctionDays)
+      );
+
+      // ✅ 2) Send URL list to backend
       const vehicleData = {
-        ownerId: user.id || user._id,
         make: formData.make,
         model: formData.model,
         year: Number(formData.year),
@@ -79,16 +112,14 @@ export function AddVehicle() {
         auctionEndDate: auctionEndDate.toISOString(),
         description: formData.description,
         images:
-          imageUrls.length > 0
-            ? imageUrls
+          uploadedUrls.length > 0
+            ? uploadedUrls
             : ["https://via.placeholder.com/800x600"],
         status: "active",
         bids: [],
       };
 
-      console.log("Submitting vehicle:", vehicleData);
-
-      const response = await vehiclesAPI.create(vehicleData);
+      const response = await vehiclesAPI.create(vehicleData, idToken);
 
       if (response.error) {
         toast.error(response.error);
@@ -338,63 +369,56 @@ export function AddVehicle() {
             <h3 className="font-bold text-gray-900">
               Photos{" "}
               <span className="text-xs text-gray-400 font-normal">
-                (max 6)
+                (max 6 images)
               </span>
             </h3>
 
-            {/* Image URL input */}
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={imageInput}
-                onChange={(e) => setImageInput(e.target.value)}
-                placeholder="Paste image URL here..."
-                className="flex-1 border border-gray-300 rounded px-4 py-2 text-sm focus:outline-none focus:border-[#00a8e8]"
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddImage())}
-              />
-              <button
-                type="button"
-                onClick={handleAddImage}
-                className="px-4 py-2 bg-[#00a8e8] text-white rounded text-sm hover:bg-[#0090c8] transition-colors"
-              >
-                Add
-              </button>
-            </div>
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleImageSelect}
+            />
 
-            {/* Image previews */}
             <div className="grid grid-cols-3 gap-4">
-              {imageUrls.map((url, index) => (
-                <div key={index} className="relative aspect-square">
+              {imagePreviews.map((url, index) => (
+                <div
+                  key={index}
+                  className="relative aspect-square rounded-lg overflow-hidden border border-gray-200"
+                >
                   <img
                     src={url}
                     alt={`Vehicle ${index + 1}`}
-                    className="w-full h-full object-cover rounded border border-gray-200"
-                    onError={(e) =>
-                      ((e.target as HTMLImageElement).src =
-                        "https://via.placeholder.com/800x600")
-                    }
+                    className="w-full h-full object-cover"
                   />
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(index)}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
               ))}
 
-              {imageUrls.length < 6 && (
-                <button
-                  type="button"
-                  onClick={() => document.querySelector<HTMLInputElement>('input[type="url"]')?.focus()}
-                  className="aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center gap-2 hover:border-[#00a8e8] hover:bg-blue-50 transition-colors"
+              {imagePreviews.length < 6 && (
+                <label
+                  htmlFor="image-upload"
+                  className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00a8e8] hover:bg-blue-50 transition-colors"
                 >
                   <Plus className="h-8 w-8 text-gray-400" />
-                  <span className="text-xs text-gray-500">Add Photo</span>
-                </button>
+                  <span className="text-xs text-gray-500 text-center px-2">
+                    Click to upload
+                  </span>
+                </label>
               )}
             </div>
+
+            <p className="text-xs text-gray-400">
+              Accepted: JPG, PNG, WEBP — up to 6 photos
+            </p>
           </div>
 
           {/* Submit */}

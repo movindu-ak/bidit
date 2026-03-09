@@ -8,13 +8,20 @@ import {
   getMyVehicles,
 } from "../controllers/auctions.controller.js";
 
+import { requireAuth } from "../middleware/requireAuth.js";
+
 const router = Router();
 
 router.get("/", getAllVehicles);
-router.get("/:id", getVehicleById);
-router.post("/", createVehicle);
-router.put("/:id", updateVehicle);
-router.delete("/:id", deleteVehicle);
+
+// ✅ put /owner BEFORE /:id
 router.get("/owner/:ownerId", getMyVehicles);
+
+router.get("/:id", getVehicleById);
+
+// ✅ protect write routes
+router.post("/", requireAuth, createVehicle);
+router.put("/:id", requireAuth, updateVehicle);
+router.delete("/:id", requireAuth, deleteVehicle);
 
 export default router;

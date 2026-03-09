@@ -62,14 +62,17 @@ export const vehiclesAPI = {
     return response.json();
   },
 
-  create: async (vehicleData: any) => {
-    const response = await fetch(`${API_BASE_URL}/vehicles`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(vehicleData),
-    });
-    return response.json();
-  },
+  create: async (vehicleData: any, idToken: string) => {
+  const response = await fetch(`${API_BASE_URL}/vehicles`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(vehicleData),
+  });
+  return response.json();
+},
 
   update: async (id: string, vehicleData: any) => {
     const response = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
@@ -93,7 +96,7 @@ export const vehiclesAPI = {
   },
 };
 
-// Bids API
+// Bids API 
 export const bidsAPI = {
   create: async (bidData: {
     vehicleId: string;

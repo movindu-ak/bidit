@@ -97,12 +97,19 @@ export async function getVehicleById(req: Request, res: Response) {
 }
 
 // Create new vehicle listing
-export async function createVehicle(req: Request, res: Response) {
+import { Request, Response } from "express";
+import { Vehicle } from "../models/vehicle.model.js";
+import { Bid } from "../models/bid.model.js";
+import type { AuthRequest } from "../middleware/requireAuth.js";
+
+export async function createVehicle(req: AuthRequest, res: Response) {
   try {
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+
     const vehicleData = req.body;
-    
-    // TODO: Get ownerId from authenticated user
-    const ownerId = req.body.ownerId || "anonymous";
+
+    // ✅ ownerId from Firebase token
+    const ownerId = req.user.uid;
 
     const vehicle = await Vehicle.create({
       ...vehicleData,
@@ -111,12 +118,7 @@ export async function createVehicle(req: Request, res: Response) {
 
     return res.status(201).json({
       message: "Vehicle created successfully",
-      vehicle: {
-        id: vehicle._id,
-        make: vehicle.make,
-        model: vehicle.model,
-        year: vehicle.year,
-      },
+      vehicle,
     });
   } catch (error: any) {
     console.error("Create vehicle error:", error);

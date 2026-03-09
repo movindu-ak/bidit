@@ -28,7 +28,7 @@ const VehicleSchema = new Schema<IVehicle>(
     make: { type: String, required: true },
     model: { type: String, required: true },
     year: { type: Number, required: true },
-    images: [{ type: String }],
+    images: { type: [String], default: [] },
     condition: {
       type: String,
       enum: ["New", "Excellent", "Good", "Fair"],
