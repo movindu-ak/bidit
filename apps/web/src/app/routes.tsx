@@ -6,6 +6,7 @@ import { AddVehicle } from "./pages/addvehicle";
 import { MyAds } from "./pages/myads";
 import { MyBids } from "./pages/mybids";
 import { VehicleDetail } from "./pages/vehicledetail";
+import { MyProfile } from "./pages/myprofile";
 
 export const router = createBrowserRouter([
   {
@@ -35,6 +36,10 @@ export const router = createBrowserRouter([
       {
         path: "vehicle/:id",
         element: <VehicleDetail />,
+      },
+      {
+        path: "profile",
+        element: <MyProfile />,
       },
     ],
   },

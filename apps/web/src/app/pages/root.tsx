@@ -1,12 +1,35 @@
-import { Outlet, Link } from "react-router";
+import { Outlet, Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import type { User } from "firebase/auth";
+import { auth } from "../../firebase/firebase";
+import { toast } from "sonner";
 import { 
   Car, 
   Heart, 
   Truck,
-  Bus
+  Bus,
+  UserCircle,
 } from "lucide-react";
 
 export function Root() {
+  const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    toast.success("Logged out successfully");
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
@@ -26,12 +49,30 @@ export function Root() {
               >
                 + Post Free Vehicle Ad
               </Link>
-              <Link to="/auth" className="hover:underline text-sm">
-                Login
-              </Link>
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm transition-colors"
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link to="/auth" className="hover:underline text-sm">
+                  Login
+                </Link>
+              )}
               <Link to="/my-ads" className="hover:underline text-sm">
                 My Ads
               </Link>
+              {user && (
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-1 hover:underline text-sm"
+                >
+                  <UserCircle className="h-4 w-4" />
+                  My Profile
+                </Link>
+              )}
               <button className="hover:underline text-sm">
                 Contact Us
               </button>
