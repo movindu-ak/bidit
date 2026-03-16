@@ -7,6 +7,7 @@ import { MyAds } from "./pages/myads";
 import { MyBids } from "./pages/mybids";
 import { VehicleDetail } from "./pages/vehicledetail";
 import { MyProfile } from "./pages/myprofile";
+import { Favourites } from "./pages/favourites";
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +33,10 @@ export const router = createBrowserRouter([
       {
         path: "my-bids",
         element: <MyBids />,
+      },
+      {
+        path: "favourites",
+        element: <Favourites />,
       },
       {
         path: "vehicle/:id",

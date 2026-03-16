@@ -9,6 +9,7 @@ import {
   Clock,
   TrendingUp,
   X,
+  Heart,
   Tag,
   MessageCircle,
 } from "lucide-react";
@@ -24,6 +25,11 @@ import {
 import { vehiclesAPI, bidsAPI } from "../../services/api";
 import { toast } from "sonner";
 import { auth } from "../../firebase/firebase";
+import {
+  isFavouriteVehicle,
+  toggleFavouriteVehicle,
+  type FavouriteVehicle,
+} from "../utils/favourites";
 
 export function VehicleDetail() {
   const { id } = useParams();
@@ -33,6 +39,7 @@ export function VehicleDetail() {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [bidAmount, setBidAmount] = useState<number>(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isFavourite, setIsFavourite] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -47,6 +54,7 @@ export function VehicleDetail() {
       const fetchedVehicle = data?.vehicle ?? null;
       setVehicle(fetchedVehicle);
       setSelectedImageIndex(0);
+      setIsFavourite(isFavouriteVehicle(String(fetchedVehicle?.id ?? "")));
       setBidAmount((fetchedVehicle?.currentPrice ?? fetchedVehicle?.startingBid ?? 0) + 1000);
     } catch (error) {
       console.error("Failed to load vehicle:", error);
@@ -122,14 +130,13 @@ export function VehicleDetail() {
     }
 
     try {
-      const idToken = await firebaseUser.getIdToken();
       const response = await bidsAPI.create({
         vehicleId: vehicle.id,
         amount: bidAmount,
         bidderId: firebaseUser.uid,
         bidderName: user.displayName || firebaseUser.displayName || "Anonymous",
         bidderEmail: user.email || firebaseUser.email || "",
-      }, idToken);
+      });
 
       if (response.error) {
         toast.error(response.error);
@@ -168,6 +175,23 @@ export function VehicleDetail() {
       : String(value);
 
   const basePrice = vehicle.basePrice ?? startingBid;
+
+  const handleToggleFavourite = () => {
+    const favouriteVehicle: FavouriteVehicle = {
+      id: String(vehicle.id),
+      make: vehicle.make,
+      model: vehicle.model,
+      year: vehicle.year,
+      image: vehicleImages[0] || "",
+      currentPrice,
+      bidsCount: vehicle.bidsCount ?? vehicle.bids?.length ?? 0,
+      location: vehicle.location || "",
+    };
+
+    const nowFavourite = toggleFavouriteVehicle(favouriteVehicle);
+    setIsFavourite(nowFavourite);
+    toast.success(nowFavourite ? "Added to favourites" : "Removed from favourites");
+  };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -231,12 +255,23 @@ export function VehicleDetail() {
               {vehicle.make} {vehicle.model} {vehicle.year} â€“{" "}
               <span className="text-gray-600 font-medium">{vehicle.condition} Condition</span>
             </h1>
-            {vehicle.category && (
-              <span className="flex-shrink-0 flex items-center gap-1 px-3 py-1 text-xs font-bold uppercase tracking-wide bg-blue-100 text-blue-700 border border-blue-200 rounded-full">
-                <Tag className="h-3 w-3" />
-                {vehicle.category}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleToggleFavourite}
+                className="flex-shrink-0 p-2 rounded-full border border-gray-200 hover:bg-gray-50"
+                aria-label={isFavourite ? "Remove from favourites" : "Add to favourites"}
+              >
+                <Heart className={`h-5 w-5 ${isFavourite ? "text-red-500 fill-red-500" : "text-gray-400"}`} />
+              </button>
+
+              {vehicle.category && (
+                <span className="flex-shrink-0 flex items-center gap-1 px-3 py-1 text-xs font-bold uppercase tracking-wide bg-blue-100 text-blue-700 border border-blue-200 rounded-full">
+                  <Tag className="h-3 w-3" />
+                  {vehicle.category}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Location */}

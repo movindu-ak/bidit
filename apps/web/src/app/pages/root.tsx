@@ -9,6 +9,7 @@ import {
   Heart, 
   Truck,
   Bus,
+  Gavel,
   UserCircle,
 } from "lucide-react";
 
@@ -64,6 +65,10 @@ export function Root() {
               <Link to="/my-ads" className="hover:underline text-sm">
                 My Ads
               </Link>
+              <Link to="/favourites" className="flex items-center gap-1 hover:underline text-sm">
+                <Heart className="h-4 w-4" />
+                Favourites
+              </Link>
               {user && (
                 <Link
                   to="/profile"
@@ -105,9 +110,15 @@ export function Root() {
             </Link>
             <Link to="/my-bids" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
               <div className="bg-gray-100 p-4 rounded">
-                <Heart className="h-6 w-6" />
+                <Gavel className="h-6 w-6" />
               </div>
               <span className="text-sm">My Bids</span>
+            </Link>
+            <Link to="/favourites" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
+              <div className="bg-gray-100 p-4 rounded">
+                <Heart className="h-6 w-6" />
+              </div>
+              <span className="text-sm">Favourites</span>
             </Link>
           </div>
         </div>
@@ -134,6 +145,7 @@ export function Root() {
                 <li><Link to="/" className="hover:text-white">Browse Vehicles</Link></li>
                 <li><Link to="/add-vehicle" className="hover:text-white">Post an Ad</Link></li>
                 <li><Link to="/my-bids" className="hover:text-white">My Bids</Link></li>
+                <li><Link to="/favourites" className="hover:text-white">Favourites</Link></li>
               </ul>
             </div>
             <div>

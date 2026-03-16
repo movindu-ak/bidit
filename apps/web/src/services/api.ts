@@ -1,5 +1,16 @@
+import { auth } from "../firebase/firebase";
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
+async function getAuthHeader() {
+  const user = auth.currentUser;
+  if (!user) throw new Error("User not authenticated");
+
+  const token = await user.getIdToken();
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
 
 // Auth API
 export const authAPI = {
@@ -28,10 +39,11 @@ export const authAPI = {
     return response.json();
   },
 
-  me: async (token: string) => {
+  me: async () => {
+    const authHeader = await getAuthHeader();
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        ...authHeader,
       },
     });
 
@@ -62,35 +74,45 @@ export const vehiclesAPI = {
     return response.json();
   },
 
-  create: async (vehicleData: any, idToken: string) => {
-  const response = await fetch(`${API_BASE_URL}/vehicles`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify(vehicleData),
-  });
-  return response.json();
-},
+  create: async (vehicleData: any) => {
+    const authHeader = await getAuthHeader();
+    const response = await fetch(`${API_BASE_URL}/vehicles`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader,
+      },
+      body: JSON.stringify(vehicleData),
+    });
+    return response.json();
+  },
 
   update: async (id: string, vehicleData: any) => {
+    const authHeader = await getAuthHeader();
     const response = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader,
+      },
       body: JSON.stringify(vehicleData),
     });
     return response.json();
   },
 
   delete: async (id: string) => {
+    const authHeader = await getAuthHeader();
     const response = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
       method: "DELETE",
+      headers: {
+        ...authHeader,
+      },
     });
     return response.json();
   },
 
   getMyVehicles: async (ownerId: string) => {
+    // Route is currently public in backend (`GET /vehicles/owner/:ownerId`).
     const response = await fetch(`${API_BASE_URL}/vehicles/owner/${ownerId}`);
     return response.json();
   },
@@ -104,12 +126,13 @@ export const bidsAPI = {
     bidderId: string;
     bidderName: string;
     bidderEmail: string;
-  }, idToken: string) => {
+  }) => {
+    const authHeader = await getAuthHeader();
     const response = await fetch(`${API_BASE_URL}/bids`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
+        ...authHeader,
       },
       body: JSON.stringify(bidData),
     });

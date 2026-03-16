@@ -15,7 +15,7 @@ const router = Router();
 router.get("/", getAllVehicles);
 
 // ✅ put /owner BEFORE /:id
-router.get("/owner/:ownerId", getMyVehicles);
+router.get("/owner/:ownerId", requireAuth, getMyVehicles);
 
 router.get("/:id", getVehicleById);
 

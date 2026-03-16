@@ -112,7 +112,6 @@ export function VehicleForm() {
 
     try {
       setLoading(true);
-      const idToken = await currentUser.getIdToken();
       const firebaseUid = currentUser.uid;
 
       const uploadedUrls =
@@ -159,7 +158,7 @@ export function VehicleForm() {
         bids: [],
       };
 
-      const response = await vehiclesAPI.create(vehicleData, idToken);
+      const response = await vehiclesAPI.create(vehicleData);
       if (response.error) {
         toast.error(response.error);
       } else {

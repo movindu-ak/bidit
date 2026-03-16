@@ -29,52 +29,30 @@ export function Auth() {
 
     try {
       setLoading(true);
-
-      // ✅ IMPORTANT: persistence for BOTH login and signup
       await setPersistence(auth, browserLocalPersistence);
 
       if (isLogin) {
-        // Login with Firebase
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
-
-        // Send to backend
         const response = await authAPI.login(idToken);
-
         if (response.error) {
           toast.error(response.error);
           return;
         }
-
-        localStorage.setItem("user", JSON.stringify(response.user));
-        localStorage.setItem("token", idToken);
-
+        setPassword("");
+        setConfirmPassword("");
         toast.success("Login successful!");
         navigate("/");
       } else {
-        // Signup with Firebase
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
-
-        // Send to backend
         const response = await authAPI.signup(idToken, displayName);
-
         if (response.error) {
           toast.error(response.error);
           return;
         }
-
-        localStorage.setItem("user", JSON.stringify(response.user));
-        localStorage.setItem("token", idToken);
-
+        setPassword("");
+        setConfirmPassword("");
         toast.success("Account created successfully!");
         navigate("/");
       }

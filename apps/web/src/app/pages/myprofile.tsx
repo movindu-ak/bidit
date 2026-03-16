@@ -154,8 +154,7 @@ export function MyProfile() {
 
         // Fetch backend profile for extra fields (phone stored in backend)
         try {
-          const idToken = await firebaseUser.getIdToken();
-          const data = await authAPI.me(idToken);
+          const data = await authAPI.me();
           if (data?.phoneNumber) setPhone(data.phoneNumber);
           if (data?.displayName && !firebaseUser.displayName)
             setUsername(data.displayName);
