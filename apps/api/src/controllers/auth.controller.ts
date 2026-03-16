@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { User } from "../models/user.model.js";
 import admin from "../config/firebase.js";
 
@@ -13,7 +13,7 @@ export async function signup(req: Request, res: Response) {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const idToken = authHeader.split("Bearer ")[1];
+    const idToken = authHeader.slice(7);
     const { displayName } = req.body as { displayName?: string };
 
     if (!displayName) {
@@ -34,7 +34,7 @@ export async function signup(req: Request, res: Response) {
 
     const user = await User.create({
       firebaseUid: decodedToken.uid,
-      email: decodedToken.email ?? null,
+      email: decodedToken.email ?? "",
       displayName,
       photoURL,
       role: "user",
@@ -69,7 +69,7 @@ export async function login(req: Request, res: Response) {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const idToken = authHeader.split("Bearer ")[1];
+    const idToken = authHeader.slice(7);
 
     const decodedToken = await admin.auth().verifyIdToken(idToken);
 
@@ -108,7 +108,7 @@ export async function me(req: Request, res: Response) {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const idToken = authHeader.split("Bearer ")[1];
+    const idToken = authHeader.slice(7);
 
     const decodedToken = await admin.auth().verifyIdToken(idToken);
 

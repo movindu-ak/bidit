@@ -1,12 +1,36 @@
-import { Outlet, Link } from "react-router";
+import { Outlet, Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import type { User } from "firebase/auth";
+import { auth } from "../../firebase/firebase";
+import { toast } from "sonner";
 import { 
   Car, 
   Heart, 
   Truck,
-  Bus
+  Bus,
+  Gavel,
+  UserCircle,
 } from "lucide-react";
 
 export function Root() {
+  const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    toast.success("Logged out successfully");
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
@@ -26,12 +50,34 @@ export function Root() {
               >
                 + Post Free Vehicle Ad
               </Link>
-              <Link to="/auth" className="hover:underline text-sm">
-                Login
-              </Link>
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm transition-colors"
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link to="/auth" className="hover:underline text-sm">
+                  Login
+                </Link>
+              )}
               <Link to="/my-ads" className="hover:underline text-sm">
                 My Ads
               </Link>
+              <Link to="/favourites" className="flex items-center gap-1 hover:underline text-sm">
+                <Heart className="h-4 w-4" />
+                Favourites
+              </Link>
+              {user && (
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-1 hover:underline text-sm"
+                >
+                  <UserCircle className="h-4 w-4" />
+                  My Profile
+                </Link>
+              )}
               <button className="hover:underline text-sm">
                 Contact Us
               </button>
@@ -64,9 +110,15 @@ export function Root() {
             </Link>
             <Link to="/my-bids" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
               <div className="bg-gray-100 p-4 rounded">
-                <Heart className="h-6 w-6" />
+                <Gavel className="h-6 w-6" />
               </div>
               <span className="text-sm">My Bids</span>
+            </Link>
+            <Link to="/favourites" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
+              <div className="bg-gray-100 p-4 rounded">
+                <Heart className="h-6 w-6" />
+              </div>
+              <span className="text-sm">Favourites</span>
             </Link>
           </div>
         </div>
@@ -93,6 +145,7 @@ export function Root() {
                 <li><Link to="/" className="hover:text-white">Browse Vehicles</Link></li>
                 <li><Link to="/add-vehicle" className="hover:text-white">Post an Ad</Link></li>
                 <li><Link to="/my-bids" className="hover:text-white">My Bids</Link></li>
+                <li><Link to="/favourites" className="hover:text-white">Favourites</Link></li>
               </ul>
             </div>
             <div>

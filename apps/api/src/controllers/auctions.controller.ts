@@ -1,6 +1,7 @@
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { Vehicle } from "../models/vehicle.model.js";
 import { Bid } from "../models/bid.model.js";
+import type { AuthRequest } from "../middleware/requireAuth.js";
 
 // Get all vehicles/auctions
 export async function getAllVehicles(req: Request, res: Response) {
@@ -61,7 +62,7 @@ export async function getVehicleById(req: Request, res: Response) {
       return res.status(404).json({ error: "Vehicle not found" });
     }
 
-    const bids = await Bid.find({ vehicleId: id }).sort({ amount: -1 });
+    const bids = await Bid.find({ vehicleId: id as string }).sort({ amount: -1 });
     const highestBid = bids[0];
 
     return res.json({
@@ -71,9 +72,19 @@ export async function getVehicleById(req: Request, res: Response) {
         model: vehicle.model,
         year: vehicle.year,
         images: vehicle.images,
-        basePrice: vehicle.startingBid,
+        basePrice: vehicle.basePrice ?? vehicle.startingBid,
         currentPrice: highestBid ? highestBid.amount : vehicle.startingBid,
         startingBid: vehicle.startingBid,
+        negotiationEnabled: vehicle.negotiationEnabled ?? false,
+        auctionDays:
+          vehicle.auctionDays ??
+          Math.max(
+            1,
+            Math.ceil(
+              (new Date(vehicle.auctionEndDate).getTime() - new Date(vehicle.createdAt).getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          ),
         bidsCount: bids.length,
         location: vehicle.location,
         condition: vehicle.condition,
@@ -81,6 +92,7 @@ export async function getVehicleById(req: Request, res: Response) {
         specs: vehicle.specs,
         description: vehicle.description,
         endingAt: vehicle.auctionEndDate,
+        createdAt: vehicle.createdAt,
         ownerId: vehicle.ownerId,
         bids: bids.map(bid => ({
           id: bid._id,
@@ -97,12 +109,14 @@ export async function getVehicleById(req: Request, res: Response) {
 }
 
 // Create new vehicle listing
-export async function createVehicle(req: Request, res: Response) {
+export async function createVehicle(req: AuthRequest, res: Response) {
   try {
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+
     const vehicleData = req.body;
-    
-    // TODO: Get ownerId from authenticated user
-    const ownerId = req.body.ownerId || "anonymous";
+
+    // ✅ ownerId from Firebase token
+    const ownerId = req.user.uid;
 
     const vehicle = await Vehicle.create({
       ...vehicleData,
@@ -111,12 +125,7 @@ export async function createVehicle(req: Request, res: Response) {
 
     return res.status(201).json({
       message: "Vehicle created successfully",
-      vehicle: {
-        id: vehicle._id,
-        make: vehicle.make,
-        model: vehicle.model,
-        year: vehicle.year,
-      },
+      vehicle,
     });
   } catch (error: any) {
     console.error("Create vehicle error:", error);
@@ -158,7 +167,7 @@ export async function deleteVehicle(req: Request, res: Response) {
     }
 
     // Also delete associated bids
-    await Bid.deleteMany({ vehicleId: id });
+    await Bid.deleteMany({ vehicleId: id as string });
 
     return res.json({ message: "Vehicle deleted successfully" });
   } catch (error: any) {
@@ -172,7 +181,7 @@ export async function getMyVehicles(req: Request, res: Response) {
   try {
     const { ownerId } = req.params;
     
-    const vehicles = await Vehicle.find({ ownerId }).sort({ createdAt: -1 });
+    const vehicles = await Vehicle.find({ ownerId: ownerId as string }).sort({ createdAt: -1 });
 
     const vehiclesWithBids = await Promise.all(
       vehicles.map(async (vehicle) => {

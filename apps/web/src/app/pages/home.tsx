@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { MapPin } from "lucide-react";
+import { Heart, MapPin } from "lucide-react";
+import { toast } from "sonner";
 import { vehiclesAPI } from "../../services/api";
+import {
+  toggleFavouriteVehicle,
+  getFavouriteVehicles,
+  type FavouriteVehicle,
+} from "../utils/favourites";
 
 interface Vehicle {
   id: string;
@@ -17,12 +23,99 @@ interface Vehicle {
   category: string;
 }
 
+const EXAMPLE_VEHICLES: Vehicle[] = [
+  {
+    id: "ex-1",
+    make: "Toyota",
+    model: "Aqua",
+    year: 2022,
+    image: "https://images.unsplash.com/photo-1626668893632-6f3a4466d22f?w=640&q=80",
+    currentPrice: 7200,
+    startingBid: 7000,
+    bidsCount: 5,
+    location: "Colombo, Sri Lanka",
+    condition: "Excellent",
+    category: "Sedan",
+  },
+  {
+    id: "ex-2",
+    make: "Honda",
+    model: "Vezel",
+    year: 2021,
+    image: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=640&q=80",
+    currentPrice: 8500,
+    startingBid: 8000,
+    bidsCount: 9,
+    location: "Kandy, Sri Lanka",
+    condition: "Excellent",
+    category: "SUV",
+  },
+  {
+    id: "ex-3",
+    make: "Suzuki",
+    model: "Alto",
+    year: 2023,
+    image: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=640&q=80",
+    currentPrice: 4100,
+    startingBid: 4000,
+    bidsCount: 3,
+    location: "Galle, Sri Lanka",
+    condition: "New",
+    category: "Sedan",
+  },
+  {
+    id: "ex-4",
+    make: "Nissan",
+    model: "X-Trail",
+    year: 2020,
+    image: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=640&q=80",
+    currentPrice: 11000,
+    startingBid: 10500,
+    bidsCount: 12,
+    location: "Negombo, Sri Lanka",
+    condition: "Good",
+    category: "SUV",
+  },
+  {
+    id: "ex-5",
+    make: "BMW",
+    model: "320i",
+    year: 2019,
+    image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=640&q=80",
+    currentPrice: 24000,
+    startingBid: 22000,
+    bidsCount: 18,
+    location: "Colombo, Sri Lanka",
+    condition: "Excellent",
+    category: "Sedan",
+  },
+  {
+    id: "ex-6",
+    make: "Mitsubishi",
+    model: "Outlander",
+    year: 2021,
+    image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=640&q=80",
+    currentPrice: 13500,
+    startingBid: 13000,
+    bidsCount: 7,
+    location: "Kurunegala, Sri Lanka",
+    condition: "Good",
+    category: "SUV",
+  },
+];
+
 export function Home() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMake, setSelectedMake] = useState("Any Make");
   const [selectedCondition, setSelectedCondition] = useState("Any Condition");
   const [currentPage, setCurrentPage] = useState(1);
+  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const ids = new Set(getFavouriteVehicles().map((vehicle) => vehicle.id));
+    setFavouriteIds(ids);
+  }, []);
 
   useEffect(() => {
     loadVehicles();
@@ -36,9 +129,19 @@ export function Home() {
       if (selectedCondition !== "Any Condition") filters.condition = selectedCondition;
       
       const data = await vehiclesAPI.getAll(filters);
-      setVehicles(data.vehicles || []);
+      const fetched: Vehicle[] = data.vehicles || [];
+
+      // Merge real vehicles first, then append examples that aren't duplicated
+      const combined = [
+        ...fetched,
+        ...EXAMPLE_VEHICLES.filter(
+          (ex) => !fetched.some((v) => v.id === ex.id)
+        ),
+      ];
+      setVehicles(combined);
     } catch (error) {
       console.error("Failed to load vehicles:", error);
+      setVehicles(EXAMPLE_VEHICLES);
     } finally {
       setLoading(false);
     }
@@ -48,7 +151,6 @@ export function Home() {
 
   const totalResults = filteredVehicles.length;
   const resultsPerPage = 40;
-  const totalPages = Math.ceil(totalResults / resultsPerPage);
 
   return (
     <div className="space-y-6">
@@ -159,7 +261,37 @@ export function Home() {
       <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {filteredVehicles.map((vehicle) => (
-          <VehicleCard key={vehicle.id} vehicle={vehicle} />
+          <VehicleCard
+            key={vehicle.id}
+            vehicle={vehicle}
+            isFavourite={favouriteIds.has(vehicle.id)}
+            onToggleFavourite={(vehicleToToggle) => {
+              const favVehicle: FavouriteVehicle = {
+                id: vehicleToToggle.id,
+                make: vehicleToToggle.make,
+                model: vehicleToToggle.model,
+                year: vehicleToToggle.year,
+                image: vehicleToToggle.image,
+                currentPrice: vehicleToToggle.currentPrice,
+                bidsCount: vehicleToToggle.bidsCount,
+                location: vehicleToToggle.location,
+              };
+
+              const isNowFavourite = toggleFavouriteVehicle(favVehicle);
+              setFavouriteIds((prev) => {
+                const next = new Set(prev);
+                if (isNowFavourite) next.add(vehicleToToggle.id);
+                else next.delete(vehicleToToggle.id);
+                return next;
+              });
+
+              toast.success(
+                isNowFavourite
+                  ? "Added to favourites"
+                  : "Removed from favourites"
+              );
+            }}
+          />
         ))}
       </div>
 
@@ -190,8 +322,16 @@ export function Home() {
   );
 }
 
-function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
-  const priceLKR = (vehicle.currentPrice * 325).toLocaleString();
+function VehicleCard({
+  vehicle,
+  isFavourite,
+  onToggleFavourite,
+}: {
+  vehicle: Vehicle;
+  isFavourite: boolean;
+  onToggleFavourite: (vehicle: Vehicle) => void;
+}) {
+  const priceLKR = vehicle.currentPrice.toLocaleString();
 
   return (
     <Link 
@@ -199,6 +339,21 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
       className="bg-white border-2 border-[#c8e6c9] rounded hover:shadow-md transition-shadow block relative"
     >
       <div className="p-4">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleFavourite(vehicle);
+          }}
+          className="absolute top-3 right-3 p-1.5 rounded-full bg-white/90 border border-gray-200 hover:bg-gray-50"
+          aria-label={isFavourite ? "Remove from favourites" : "Add to favourites"}
+        >
+          <Heart
+            className={`h-5 w-5 ${isFavourite ? "text-red-500 fill-red-500" : "text-gray-400"}`}
+          />
+        </button>
+
         {/* Title at top */}
         <h3 className="text-center text-base font-bold text-gray-900 mb-3">
           {vehicle.make} {vehicle.model} {vehicle.year} Car

@@ -96,7 +96,7 @@ export function EditAd() {
 
           {/* Price */}
           <div>
-            <label className="block text-sm mb-2">Current Bid Price (USD)</label>
+            <label className="block text-sm mb-2">Current Bid Price (Rs.)</label>
             <input
               type="number"
               value={formData.price}

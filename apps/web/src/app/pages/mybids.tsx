@@ -61,13 +61,12 @@ export function MyBids() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-gray-500">Your Bid</p>
-                    <p className="font-bold text-gray-900">${v.myBid.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">Rs. {(v.myBid * 325).toLocaleString()}</p>
+                    <p className="font-bold text-gray-900">Rs. {v.myBid.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Current Price</p>
                     <p className={`font-bold ${v.status === "Outbid" ? "text-red-600" : "text-green-600"}`}>
-                      ${v.currentPrice.toLocaleString()}
+                      Rs. {v.currentPrice.toLocaleString()}
                     </p>
                   </div>
                 </div>
