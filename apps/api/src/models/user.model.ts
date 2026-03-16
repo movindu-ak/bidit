@@ -1,6 +1,18 @@
-import mongoose from "mongoose";
+import mongoose, { type Document } from "mongoose";
 
 export type UserRole = "user" | "admin";
+
+export interface IUser extends Document {
+  firebaseUid: string;
+  email: string;
+  displayName: string;
+  photoURL: string | null;
+  role: UserRole;
+  walletBalance: number;
+  favorites: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 const userSchema = new mongoose.Schema(
   {
@@ -15,4 +27,4 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export const User = mongoose.model("User", userSchema);
+export const User = mongoose.model<IUser>("User", userSchema);

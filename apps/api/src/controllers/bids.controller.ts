@@ -76,7 +76,7 @@ export async function getVehicleBids(req: Request, res: Response) {
       return res.status(400).json({ error: "vehicleId is required" });
     }
 
-    const bids = await Bid.find({ vehicleId }).sort({ amount: -1 });
+    const bids = await Bid.find({ vehicleId: vehicleId as string }).sort({ amount: -1 });
 
     return res.json({
       bids: bids.map(bid => ({
@@ -101,7 +101,7 @@ export async function getUserBids(req: Request, res: Response) {
       return res.status(400).json({ error: "userId is required" });
     }
 
-    const bids = await Bid.find({ bidderId: userId }).sort({ createdAt: -1 });
+    const bids = await Bid.find({ bidderId: userId as string }).sort({ createdAt: -1 });
 
     // Get vehicle details for each bid
     const bidsWithVehicles = await Promise.all(

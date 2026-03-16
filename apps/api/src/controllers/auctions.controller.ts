@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { Vehicle } from "../models/vehicle.model.js";
 import { Bid } from "../models/bid.model.js";
 import type { AuthRequest } from "../middleware/requireAuth.js";
@@ -62,7 +62,7 @@ export async function getVehicleById(req: Request, res: Response) {
       return res.status(404).json({ error: "Vehicle not found" });
     }
 
-    const bids = await Bid.find({ vehicleId: id }).sort({ amount: -1 });
+    const bids = await Bid.find({ vehicleId: id as string }).sort({ amount: -1 });
     const highestBid = bids[0];
 
     return res.json({
@@ -167,7 +167,7 @@ export async function deleteVehicle(req: Request, res: Response) {
     }
 
     // Also delete associated bids
-    await Bid.deleteMany({ vehicleId: id });
+    await Bid.deleteMany({ vehicleId: id as string });
 
     return res.json({ message: "Vehicle deleted successfully" });
   } catch (error: any) {
@@ -181,7 +181,7 @@ export async function getMyVehicles(req: Request, res: Response) {
   try {
     const { ownerId } = req.params;
     
-    const vehicles = await Vehicle.find({ ownerId }).sort({ createdAt: -1 });
+    const vehicles = await Vehicle.find({ ownerId: ownerId as string }).sort({ createdAt: -1 });
 
     const vehiclesWithBids = await Promise.all(
       vehicles.map(async (vehicle) => {

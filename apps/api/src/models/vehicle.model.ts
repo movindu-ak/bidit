@@ -1,6 +1,6 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-export interface IVehicle extends Document {
+export interface IVehicle {
   ownerId: string;
   make: string;
   model: string;
