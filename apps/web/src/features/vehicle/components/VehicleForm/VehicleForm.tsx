@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { vehiclesAPI } from "../../../../services/api";
 import { auth } from "../../../../firebase/firebase";
 import { uploadVehicleImages } from "../../../../app/utils/uploadToFirebase";
+import { suggestStartingBid, type PricingResult } from "../../services/pricingSuggestionService";
 
 import { type VehicleFormData, type VehicleFormErrors, initialVehicleData } from "./types";
 import { validateVehicleForm, hasErrors } from "./vehicleValidation";
@@ -30,6 +31,7 @@ export function VehicleForm() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [errors, setErrors] = useState<VehicleFormErrors>({});
+  const [pricingSuggestion, setPricingSuggestion] = useState<PricingResult | null>(null);
 
   /** Single structured state for all vehicle form fields */
   const [vehicle, setVehicle] = useState<VehicleFormData>(initialVehicleData);
@@ -41,7 +43,21 @@ export function VehicleForm() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setVehicle((prev) => ({ ...prev, [name]: value }));
+    setVehicle((prev) => {
+      const next = { ...prev, [name]: value };
+
+      // Recompute pricing suggestion whenever basePrice changes
+      if (name === "basePrice") {
+        const suggestion = suggestStartingBid({
+          basePrice: Number(value),
+          condition: prev.condition,
+          year: prev.yearManufactured,
+        });
+        setPricingSuggestion(suggestion);
+      }
+
+      return next;
+    });
   };
 
   /** Typed updater for fields that aren't driven by a DOM event */
@@ -129,8 +145,10 @@ export function VehicleForm() {
           exteriorCondition: vehicle.exteriorCondition,
         },
         location: vehicle.location,
+        basePrice: Number(vehicle.basePrice),
         startingBid: Number(vehicle.startingBid),
         currentBid: Number(vehicle.startingBid),
+        auctionDays: Number(vehicle.auctionDays),
         auctionEndDate: auctionEndDate.toISOString(),
         description: vehicle.description,
         images:
@@ -191,6 +209,11 @@ export function VehicleForm() {
           handleFieldUpdate("negotiationEnabled", value)
         }
         onAuctionDaysChange={(days) => handleFieldUpdate("auctionDays", days)}
+        pricingSuggestion={pricingSuggestion}
+        onAcceptSuggestion={() =>
+          pricingSuggestion &&
+          handleFieldUpdate("startingBid", String(pricingSuggestion.suggestedStartingBid))
+        }
       />
 
       {/* 5. Description */}

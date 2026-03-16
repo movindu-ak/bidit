@@ -27,7 +27,8 @@ export interface VehicleFormData {
   insuranceClaims: string;
 
   // Pricing
-  startingBid: string;
+  basePrice: string;        // seller-entered market value
+  startingBid: string;      // confirmed auction starting bid (auto-suggested or overridden)
   negotiationEnabled: boolean;
   auctionDays: number;
 
@@ -55,6 +56,7 @@ export const initialVehicleData: VehicleFormData = {
   exteriorCondition: 75,
   previousOwners: "1",
   insuranceClaims: "0",
+  basePrice: "",
   startingBid: "",
   negotiationEnabled: false,
   auctionDays: 3,
@@ -66,5 +68,6 @@ export interface VehicleFormErrors {
   make?: string;
   model?: string;
   yearManufactured?: string;
+  basePrice?: string;
   startingBid?: string;
 }

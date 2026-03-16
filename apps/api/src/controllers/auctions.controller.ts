@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Vehicle } from "../models/vehicle.model.js";
 import { Bid } from "../models/bid.model.js";
+import type { AuthRequest } from "../middleware/requireAuth.js";
 
 // Get all vehicles/auctions
 export async function getAllVehicles(req: Request, res: Response) {
@@ -71,9 +72,19 @@ export async function getVehicleById(req: Request, res: Response) {
         model: vehicle.model,
         year: vehicle.year,
         images: vehicle.images,
-        basePrice: vehicle.startingBid,
+        basePrice: vehicle.basePrice ?? vehicle.startingBid,
         currentPrice: highestBid ? highestBid.amount : vehicle.startingBid,
         startingBid: vehicle.startingBid,
+        negotiationEnabled: vehicle.negotiationEnabled ?? false,
+        auctionDays:
+          vehicle.auctionDays ??
+          Math.max(
+            1,
+            Math.ceil(
+              (new Date(vehicle.auctionEndDate).getTime() - new Date(vehicle.createdAt).getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          ),
         bidsCount: bids.length,
         location: vehicle.location,
         condition: vehicle.condition,
@@ -81,6 +92,7 @@ export async function getVehicleById(req: Request, res: Response) {
         specs: vehicle.specs,
         description: vehicle.description,
         endingAt: vehicle.auctionEndDate,
+        createdAt: vehicle.createdAt,
         ownerId: vehicle.ownerId,
         bids: bids.map(bid => ({
           id: bid._id,
@@ -97,11 +109,6 @@ export async function getVehicleById(req: Request, res: Response) {
 }
 
 // Create new vehicle listing
-import { Request, Response } from "express";
-import { Vehicle } from "../models/vehicle.model.js";
-import { Bid } from "../models/bid.model.js";
-import type { AuthRequest } from "../middleware/requireAuth.js";
-
 export async function createVehicle(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });

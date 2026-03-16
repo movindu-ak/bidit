@@ -116,18 +116,22 @@ export function MyAds() {
             <div className="flex gap-4">
               {/* Image */}
               <div className="flex-shrink-0">
-                <img 
-                  src={v.image || "https://via.placeholder.com/400x300"} 
-                  alt={`${v.make} ${v.model}`}
-                  className="w-48 h-36 object-cover rounded"
-                />
+                <Link to={`/vehicle/${v.id}`}>
+                  <img 
+                    src={v.image || "https://via.placeholder.com/400x300"} 
+                    alt={`${v.make} ${v.model}`}
+                    className="w-48 h-36 object-cover rounded"
+                  />
+                </Link>
               </div>
 
               {/* Content */}
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  {v.make} {v.model} {v.year} Car
-                </h3>
+                <Link to={`/vehicle/${v.id}`} className="hover:text-[#00a8e8] transition-colors">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                    {v.make} {v.model} {v.year} Car
+                  </h3>
+                </Link>
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4" />
@@ -144,6 +148,12 @@ export function MyAds() {
                 <p className="text-sm text-gray-600">
                   {(v.bidsCount ?? 0)} bids {v.condition ? `• ${v.condition}` : ""}
                 </p>
+                <Link
+                  to={`/vehicle/${v.id}`}
+                  className="inline-block mt-3 text-sm text-[#00a8e8] hover:underline"
+                >
+                  View Details
+                </Link>
               </div>
 
               {/* Actions */}

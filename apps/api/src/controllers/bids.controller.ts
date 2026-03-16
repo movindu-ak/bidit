@@ -1,13 +1,23 @@
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { Bid } from "../models/bid.model.js";
 import { Vehicle } from "../models/vehicle.model.js";
+import type { AuthRequest } from "../middleware/requireAuth.js";
 
 // Create a new bid
-export async function createBid(req: Request, res: Response) {
+export async function createBid(req: AuthRequest, res: Response) {
   try {
-    const { vehicleId, amount, bidderId, bidderName, bidderEmail } = req.body;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-    if (!vehicleId || !amount || !bidderId || !bidderName || !bidderEmail) {
+    const { vehicleId, amount } = req.body;
+    const numericAmount = Number(amount);
+
+    const bidderId = req.user.uid;
+    const bidderName = req.user.name || req.body.bidderName || "Anonymous";
+    const bidderEmail = req.user.email || req.body.bidderEmail;
+
+    if (!vehicleId || !numericAmount || !bidderName || !bidderEmail) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -17,12 +27,17 @@ export async function createBid(req: Request, res: Response) {
       return res.status(404).json({ error: "Vehicle not found" });
     }
 
+    // Restrict users from bidding on their own vehicles
+    if (vehicle.ownerId === bidderId) {
+      return res.status(403).json({ error: "You cannot bid on your own vehicle" });
+    }
+
     // Get current highest bid
     const highestBid = await Bid.findOne({ vehicleId }).sort({ amount: -1 });
     const currentPrice = highestBid ? highestBid.amount : vehicle.startingBid;
 
     // Validate bid amount
-    if (amount <= currentPrice) {
+    if (numericAmount <= currentPrice) {
       return res.status(400).json({
         error: `Bid must be higher than current price of ${currentPrice}`,
       });
@@ -34,7 +49,7 @@ export async function createBid(req: Request, res: Response) {
       bidderId,
       bidderName,
       bidderEmail,
-      amount,
+      amount: numericAmount,
     });
 
     return res.status(201).json({
@@ -55,7 +70,11 @@ export async function createBid(req: Request, res: Response) {
 // Get bids for a vehicle
 export async function getVehicleBids(req: Request, res: Response) {
   try {
-    const { vehicleId } = req.params;
+    const vehicleId = req.params.vehicleId;
+
+    if (!vehicleId) {
+      return res.status(400).json({ error: "vehicleId is required" });
+    }
 
     const bids = await Bid.find({ vehicleId }).sort({ amount: -1 });
 
@@ -76,7 +95,11 @@ export async function getVehicleBids(req: Request, res: Response) {
 // Get user's bids
 export async function getUserBids(req: Request, res: Response) {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
 
     const bids = await Bid.find({ bidderId: userId }).sort({ createdAt: -1 });
 

@@ -19,10 +19,16 @@ export function validateVehicleForm(vehicle: VehicleFormData): VehicleFormErrors
     errors.yearManufactured = "Valid year of manufacture is required";
   }
 
+  if (!vehicle.basePrice) {
+    errors.basePrice = "Base price is required";
+  } else if (Number(vehicle.basePrice) <= 0) {
+    errors.basePrice = "Price must be greater than 0";
+  }
+
   if (!vehicle.startingBid) {
-    errors.startingBid = "Base price is required";
+    errors.startingBid = "Starting bid is required";
   } else if (Number(vehicle.startingBid) <= 0) {
-    errors.startingBid = "Price must be greater than 0";
+    errors.startingBid = "Starting bid must be greater than 0";
   }
 
   return errors;

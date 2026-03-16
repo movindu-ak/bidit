@@ -104,10 +104,13 @@ export const bidsAPI = {
     bidderId: string;
     bidderName: string;
     bidderEmail: string;
-  }) => {
+  }, idToken: string) => {
     const response = await fetch(`${API_BASE_URL}/bids`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
       body: JSON.stringify(bidData),
     });
     return response.json();

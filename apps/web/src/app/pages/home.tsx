@@ -139,7 +139,6 @@ export function Home() {
 
   const totalResults = filteredVehicles.length;
   const resultsPerPage = 40;
-  const totalPages = Math.ceil(totalResults / resultsPerPage);
 
   return (
     <div className="space-y-6">
@@ -282,7 +281,7 @@ export function Home() {
 }
 
 function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
-  const priceLKR = (vehicle.currentPrice * 325).toLocaleString();
+  const priceLKR = vehicle.currentPrice.toLocaleString();
 
   return (
     <Link 

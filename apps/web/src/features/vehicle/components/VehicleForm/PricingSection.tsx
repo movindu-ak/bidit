@@ -1,7 +1,9 @@
 import React from "react";
+import { Sparkles } from "lucide-react";
 import { InputField } from "../inputs/InputField";
 import { BIDDING_DAYS } from "./vehicleFormConfig";
 import type { VehicleFormData, VehicleFormErrors } from "./types";
+import type { PricingResult } from "../../services/pricingSuggestionService";
 
 interface PricingSectionProps {
   vehicle: VehicleFormData;
@@ -11,6 +13,10 @@ interface PricingSectionProps {
   ) => void;
   onNegotiationChange: (value: boolean) => void;
   onAuctionDaysChange: (days: number) => void;
+  /** Populated once the seller types a base price — null while basePrice is empty */
+  pricingSuggestion: PricingResult | null;
+  /** Called when seller accepts the suggested starting bid */
+  onAcceptSuggestion: () => void;
 }
 
 /**
@@ -24,6 +30,8 @@ export function PricingSection({
   onChange,
   onNegotiationChange,
   onAuctionDaysChange,
+  pricingSuggestion,
+  onAcceptSuggestion,
 }: PricingSectionProps) {
   return (
     <div className="space-y-4 pt-2 border-t border-gray-200">
@@ -33,13 +41,55 @@ export function PricingSection({
       <div>
         <InputField
           label="Base Price (Rs.)"
-          name="startingBid"
-          value={vehicle.startingBid}
+          name="basePrice"
+          value={vehicle.basePrice}
           onChange={onChange}
           type="number"
           placeholder="e.g., 2500000"
           required
         />
+        {errors.basePrice && (
+          <p className="text-xs text-red-500 mt-1">{errors.basePrice}</p>
+        )}
+      </div>
+
+      {/* AI / Rule-based suggestion card — shown once basePrice is entered */}
+      {pricingSuggestion && (
+        <div className="flex items-start gap-3 p-4 rounded-xl border-2 border-blue-200 bg-blue-50">
+          <Sparkles className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-blue-800">
+              Suggested Starting Bid:{" "}
+              <span className="text-blue-900">
+                Rs. {pricingSuggestion.suggestedStartingBid.toLocaleString()}
+              </span>
+            </p>
+            <p className="text-xs text-blue-600 mt-0.5">{pricingSuggestion.reasoning}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onAcceptSuggestion}
+            className="text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Accept
+          </button>
+        </div>
+      )}
+
+      {/* Starting Bid (overridable) */}
+      <div>
+        <InputField
+          label="Starting Bid (Rs.)"
+          name="startingBid"
+          value={vehicle.startingBid}
+          onChange={onChange}
+          type="number"
+          placeholder="Auto-filled or enter manually"
+          required
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          This is the minimum opening bid. Accept the suggestion above or set your own.
+        </p>
         {errors.startingBid && (
           <p className="text-xs text-red-500 mt-1">{errors.startingBid}</p>
         )}
@@ -92,30 +142,32 @@ export function PricingSection({
         </div>
       </label>
 
-      {/* Bidding Duration — always visible, max 7 days */}
-      <div className="space-y-3">
-        <p className="text-sm font-semibold text-gray-800">Bidding Duration</p>
-        <div className="flex flex-wrap gap-3">
-          {BIDDING_DAYS.map((d) => (
-            <button
-              key={d}
-              type="button"
-              onClick={() => onAuctionDaysChange(d)}
-              className={`flex flex-col items-center justify-center w-16 h-16 rounded-xl border-2 text-sm font-bold transition-all ${
-                vehicle.auctionDays === d
-                  ? "border-purple-500 bg-purple-50 text-purple-700"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
-              }`}
-            >
-              <span className="text-lg leading-none">{d}</span>
-              <span className="text-xs font-normal">{d === 1 ? "day" : "days"}</span>
-            </button>
-          ))}
+      {/* Show only when negotiation is enabled */}
+      {vehicle.negotiationEnabled && (
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-gray-800">Bidding Duration</p>
+          <div className="flex flex-wrap gap-3">
+            {BIDDING_DAYS.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => onAuctionDaysChange(d)}
+                className={`flex flex-col items-center justify-center w-16 h-16 rounded-xl border-2 text-sm font-bold transition-all ${
+                  vehicle.auctionDays === d
+                    ? "border-purple-500 bg-purple-50 text-purple-700"
+                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                }`}
+              >
+                <span className="text-lg leading-none">{d}</span>
+                <span className="text-xs font-normal">{d === 1 ? "day" : "days"}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400">
+            Select how many days the bidding will remain active (max 7 days)
+          </p>
         </div>
-        <p className="text-xs text-gray-400">
-          Select how many days the bidding will remain active (max 7 days)
-        </p>
-      </div>
+      )}
     </div>
   );
 }

@@ -16,7 +16,10 @@ export interface IVehicle extends Document {
   };
   location: string;
   description?: string;
-  startingBid: number;
+  basePrice?: number;       // seller's stated market value
+  startingBid: number;     // confirmed auction opening bid
+  negotiationEnabled?: boolean;
+  auctionDays?: number;
   auctionEndDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -47,7 +50,10 @@ const VehicleSchema = new Schema<IVehicle>(
     },
     location: { type: String, required: true },
     description: { type: String },
+    basePrice: { type: Number },
     startingBid: { type: Number, required: true },
+    negotiationEnabled: { type: Boolean, default: false },
+    auctionDays: { type: Number, default: 3 },
     auctionEndDate: { type: Date, required: true },
   },
   { timestamps: true }
