@@ -139,6 +139,10 @@ export function Home() {
     loadVehicles();
   }, [selectedMake, selectedCondition]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMake, selectedCondition]);
+
   const loadVehicles = async () => {
     try {
       setLoading(true);
@@ -194,7 +198,12 @@ export function Home() {
   };
 
   const totalResults = filteredVehicles.length;
-  const resultsPerPage = 40;
+  const resultsPerPage = 14;
+  const totalPages = Math.max(1, Math.ceil(totalResults / resultsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * resultsPerPage;
+  const endIndex = Math.min(startIndex + resultsPerPage, totalResults);
+  const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex);
 
   return (
     <div className="space-y-6">
@@ -276,16 +285,16 @@ export function Home() {
       {!loading && (
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-700">
-          Displaying <strong>1 - {Math.min(resultsPerPage, totalResults)}</strong> of <strong>{totalResults}</strong> Search Results
+          Displaying <strong>{totalResults === 0 ? 0 : startIndex + 1} - {endIndex}</strong> of <strong>{totalResults}</strong> Search Results
         </p>
         
         <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map(page => (
+          {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
               className={`w-8 h-8 flex items-center justify-center border text-sm ${
-                currentPage === page 
+                safeCurrentPage === page 
                   ? 'bg-[#00a8e8] text-white border-[#00a8e8]' 
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
@@ -293,7 +302,11 @@ export function Home() {
               {page}
             </button>
           ))}
-          <button className="px-3 h-8 flex items-center justify-center border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={safeCurrentPage === totalPages}
+            className="px-3 h-8 flex items-center justify-center border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Next
           </button>
         </div>
@@ -304,7 +317,7 @@ export function Home() {
       {!loading && (
       <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filteredVehicles.map((vehicle) => (
+        {paginatedVehicles.map((vehicle) => (
           <VehicleCard
             key={vehicle.id}
             vehicle={vehicle}
@@ -317,12 +330,12 @@ export function Home() {
       {/* Bottom Pagination */}
       <div className="flex justify-end">
         <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map(page => (
+          {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
               className={`w-8 h-8 flex items-center justify-center border text-sm ${
-                currentPage === page 
+                safeCurrentPage === page 
                   ? 'bg-[#00a8e8] text-white border-[#00a8e8]' 
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
@@ -330,7 +343,11 @@ export function Home() {
               {page}
             </button>
           ))}
-          <button className="px-3 h-8 flex items-center justify-center border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={safeCurrentPage === totalPages}
+            className="px-3 h-8 flex items-center justify-center border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Next
           </button>
         </div>

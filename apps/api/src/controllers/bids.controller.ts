@@ -27,6 +27,11 @@ export async function createBid(req: AuthRequest, res: Response) {
       return res.status(404).json({ error: "Vehicle not found" });
     }
 
+    // Disallow bids after auction has ended
+    if (vehicle.auctionEndDate && new Date(vehicle.auctionEndDate).getTime() <= Date.now()) {
+      return res.status(403).json({ error: "Bidding has ended for this vehicle" });
+    }
+
     // Restrict users from bidding on their own vehicles
     if (vehicle.ownerId === bidderId) {
       return res.status(403).json({ error: "You cannot bid on your own vehicle" });

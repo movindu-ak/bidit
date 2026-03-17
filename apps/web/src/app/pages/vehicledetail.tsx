@@ -120,6 +120,7 @@ export function VehicleDetail() {
     vehicle.description ||
     `This ${vehicle.year} ${vehicle.make} ${vehicle.model} is in ${String(vehicle.condition || "good").toLowerCase()} condition. Equipped with a ${vehicle.specs?.engine || "well-maintained"} engine and ${String(vehicle.specs?.transmission || "reliable").toLowerCase()} transmission.`;
   const endingDate = vehicle.endingAt ? new Date(vehicle.endingAt).getTime() : null;
+  const isAuctionEnded = !!endingDate && !Number.isNaN(endingDate) && endingDate <= Date.now();
   const timeLeftText = (() => {
     if (!endingDate || Number.isNaN(endingDate)) return "Auction end date unavailable";
     const diff = endingDate - Date.now();
@@ -145,6 +146,11 @@ export function VehicleDetail() {
 
     if (vehicle.ownerId && vehicle.ownerId === firebaseUser.uid) {
       toast.error("You cannot bid on your own vehicle");
+      return;
+    }
+
+    if (isAuctionEnded) {
+      toast.error("Bidding has ended for this vehicle");
       return;
     }
     
@@ -181,6 +187,10 @@ export function VehicleDetail() {
   };
 
   const openBidModal = () => {
+    if (isAuctionEnded) {
+      toast.error("Bidding has ended for this vehicle");
+      return;
+    }
     setBidAmount(String(currentPrice + 5000));
     setIsBidModalOpen(true);
   };
@@ -188,9 +198,9 @@ export function VehicleDetail() {
   const selectedAuctionDays = Number(vehicle.auctionDays) > 0 ? Number(vehicle.auctionDays) : 7;
   const auctionStartAt = vehicle.createdAt ? new Date(vehicle.createdAt).getTime() : Date.now();
 
-  // Build day-based price progression where x-axis is 0..selectedAuctionDays
-  // and the first/lowest point is always starting bid.
-  const priceHistory = [
+  // Build day-based price progression where x-axis is 0..selectedAuctionDays.
+  // Deduplicate points by day so the chart stays readable.
+  const rawPriceHistory = [
     { day: 0, price: startingBid },
     ...((vehicle.bids ?? []) as any[])
       .map((bid) => {
@@ -202,11 +212,29 @@ export function VehicleDetail() {
       .sort((a, b) => a.day - b.day),
   ];
 
+  const dayToPrice = new Map<number, number>();
+  rawPriceHistory.forEach((point) => {
+    const existing = dayToPrice.get(point.day);
+    dayToPrice.set(point.day, existing === undefined ? point.price : Math.max(existing, point.price));
+  });
+
+  const priceHistory = Array.from(dayToPrice.entries())
+    .map(([day, price]) => ({ day, price }))
+    .sort((a, b) => a.day - b.day);
+
+  const prices = priceHistory.map((point) => point.price);
+  const minPrice = prices.length ? Math.min(...prices) : startingBid;
+  const maxPrice = prices.length ? Math.max(...prices) : currentPrice;
+  const priceRange = Math.max(1, maxPrice - minPrice);
+  const yPadding = Math.max(5000, Math.ceil(priceRange * 0.15));
+  const yMin = Math.max(0, minPrice - yPadding);
+  const yMax = maxPrice + yPadding;
+
   const formatK = (value: number) =>
     value >= 1_000_000
-      ? `${(value / 1_000_000).toFixed(1)}M`
+      ? `${(value / 1_000_000).toFixed(2)}M`
       : value >= 1_000
-      ? `${(value / 1_000).toFixed(0)}k`
+      ? `${(value / 1_000).toFixed(1)}k`
       : String(value);
 
   const basePrice = vehicle.basePrice ?? startingBid;
@@ -369,10 +397,23 @@ export function VehicleDetail() {
           </div>
 
           {/* Time remaining */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-800">
-            <Clock className="h-4 w-4 flex-shrink-0 text-red-500" />
-            <span>Time Remaining: <strong>{timeLeftText}</strong></span>
+          <div
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm border ${{
+              true: "bg-red-100 border-red-300 text-red-900",
+              false: "bg-red-50 border-red-200 text-red-800",
+            }[String(isAuctionEnded) as "true" | "false"]}`}
+          >
+            <Clock className={`h-4 w-4 flex-shrink-0 ${isAuctionEnded ? "text-red-700" : "text-red-500"}`} />
+            <span>
+              {isAuctionEnded ? "Auction Ended:" : "Time Remaining:"} <strong>{timeLeftText}</strong>
+            </span>
           </div>
+
+          {isAuctionEnded && (
+            <div className="px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-semibold">
+              Auction has ended. Buyers can now view bidder names and bid amounts below.
+            </div>
+          )}
 
           {/* Price Progression chart (only when negotiation is enabled) */}
           {vehicle.negotiationEnabled && (
@@ -381,8 +422,8 @@ export function VehicleDetail() {
                 <TrendingUp className="h-4 w-4 text-gray-500" />
                 <span className="text-sm font-semibold text-gray-700">Price Progression</span>
               </div>
-              <ResponsiveContainer width="100%" height={120}>
-                <LineChart data={priceHistory} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={170}>
+                <LineChart data={priceHistory} margin={{ top: 4, right: 8, left: 0, bottom: 24 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis
                     type="number"
@@ -390,17 +431,18 @@ export function VehicleDetail() {
                     domain={[0, selectedAuctionDays]}
                     ticks={Array.from({ length: selectedAuctionDays + 1 }, (_, i) => i)}
                     tick={{ fontSize: 11, fill: "#9ca3af" }}
+                    tickMargin={8}
                     axisLine={false}
                     tickLine={false}
-                    label={{ value: "Days in Auction", position: "insideBottom", offset: -2, fill: "#6b7280", fontSize: 11 }}
+                    label={{ value: "Days in Auction", position: "bottom", offset: 8, fill: "#6b7280", fontSize: 11 }}
                   />
                   <YAxis
                     tickFormatter={formatK}
-                    domain={[startingBid, "auto"]}
+                    domain={[yMin, yMax]}
                     tick={{ fontSize: 11, fill: "#9ca3af" }}
                     axisLine={false}
                     tickLine={false}
-                    width={48}
+                    width={56}
                     label={{ value: "Price (Rs.)", angle: -90, position: "insideLeft", fill: "#6b7280", fontSize: 11 }}
                   />
                   <Tooltip
@@ -417,7 +459,7 @@ export function VehicleDetail() {
                     stroke="#6b7280"
                     strokeWidth={2}
                     dot={(dotProps: any) => {
-                      const isStartPoint = dotProps?.payload?.day === 0;
+                      const isStartPoint = dotProps?.index === 0;
                       return (
                         <circle
                           cx={dotProps.cx}
@@ -442,14 +484,16 @@ export function VehicleDetail() {
           {/* Place Bid button */}
           <button
             onClick={openBidModal}
-            disabled={isOwnerViewing}
+            disabled={isOwnerViewing || isAuctionEnded}
             className="w-full py-3.5 bg-[#00a8e8] hover:bg-[#0096d1] disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white rounded-xl font-bold text-base transition-colors"
           >
-            {isOwnerViewing ? "Your Own Vehicle" : "Place Bid"}
+            {isOwnerViewing ? "Your Own Vehicle" : isAuctionEnded ? "Bidding Closed" : "Place Bid"}
           </button>
-          {isOwnerViewing && (
+          {(isOwnerViewing || isAuctionEnded) && (
             <p className="text-xs text-amber-700 text-center -mt-2">
-              Bidding is disabled for your own listing.
+              {isOwnerViewing
+                ? "Bidding is disabled for your own listing."
+                : "Bidding is closed because auction duration has ended."}
             </p>
           )}
         </div>
@@ -477,12 +521,22 @@ export function VehicleDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Bid History */}
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h3 className="font-bold text-gray-900 mb-4">Bid History</h3>
+          <h3 className="font-bold text-gray-900 mb-1">
+            {isAuctionEnded ? "Final Bids (Auction Ended)" : "Bid History"}
+          </h3>
+          {isAuctionEnded && (
+            <p className="text-xs text-gray-500 mb-4">
+              Bidder names and amounts are visible after auction end.
+            </p>
+          )}
           {vehicle.bids && vehicle.bids.length > 0 ? (
             <div className="space-y-2">
-              {[...vehicle.bids].reverse().map((bid: any) => (
+              {[...vehicle.bids].map((bid: any, index: number) => (
                 <div key={bid.id ?? bid._id} className="flex justify-between items-center px-4 py-3 bg-gray-50 rounded-xl">
-                  <span className="text-sm text-gray-700">{bid.bidderName ?? "Anonymous"}</span>
+                  <span className="text-sm text-gray-700">
+                    {isAuctionEnded && <span className="text-gray-400 mr-2">#{index + 1}</span>}
+                    {bid.bidderName ?? "Anonymous"}
+                  </span>
                   <span className="font-bold text-emerald-700">Rs. {bid.amount.toLocaleString()}</span>
                 </div>
               ))}

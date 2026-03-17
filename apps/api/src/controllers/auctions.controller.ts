@@ -177,16 +177,26 @@ export async function deleteVehicle(req: Request, res: Response) {
 }
 
 // Get vehicles by owner
-export async function getMyVehicles(req: Request, res: Response) {
+export async function getMyVehicles(req: AuthRequest, res: Response) {
   try {
     const { ownerId } = req.params;
+    const uid = req.user?.uid;
+
+    if (!uid) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!ownerId || ownerId !== uid) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     
-    const vehicles = await Vehicle.find({ ownerId: ownerId as string }).sort({ createdAt: -1 });
+    const vehicles = await Vehicle.find({ ownerId: uid }).sort({ createdAt: -1 });
 
     const vehiclesWithBids = await Promise.all(
       vehicles.map(async (vehicle) => {
         const bids = await Bid.find({ vehicleId: vehicle._id.toString() }).sort({ amount: -1 });
         const highestBid = bids[0];
+        const isAuctionEnded = new Date(vehicle.auctionEndDate).getTime() <= Date.now();
         
         return {
           id: vehicle._id,
@@ -196,8 +206,18 @@ export async function getMyVehicles(req: Request, res: Response) {
           image: vehicle.images[0] || "",
           currentPrice: highestBid ? highestBid.amount : vehicle.startingBid,
           bidsCount: bids.length,
+          condition: vehicle.condition,
           location: vehicle.location,
           endingAt: vehicle.auctionEndDate,
+          bids: isAuctionEnded
+            ? bids.map((bid) => ({
+                id: bid._id,
+                bidderName: bid.bidderName,
+                bidderEmail: bid.bidderEmail,
+                amount: bid.amount,
+                createdAt: bid.createdAt,
+              }))
+            : [],
         };
       })
     );

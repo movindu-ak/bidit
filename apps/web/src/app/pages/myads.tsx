@@ -17,6 +17,13 @@ type MyVehicle = {
   bidsCount?: number;
   condition?: string;
   endingAt?: string;
+  bids?: Array<{
+    id: string;
+    bidderName: string;
+    bidderEmail: string;
+    amount: number;
+    createdAt?: string;
+  }>;
 };
 
 export function MyAds() {
@@ -120,7 +127,7 @@ export function MyAds() {
                   <img 
                     src={v.image || "https://via.placeholder.com/400x300"} 
                     alt={`${v.make} ${v.model}`}
-                    className="w-48 h-36 object-cover rounded"
+                    className="w-48 h-36 object-contain bg-gray-100 rounded"
                   />
                 </Link>
               </div>
@@ -154,6 +161,38 @@ export function MyAds() {
                 >
                   View Details
                 </Link>
+
+                {(() => {
+                  const end = v.endingAt ? new Date(v.endingAt).getTime() : NaN;
+                  const isEnded = !Number.isNaN(end) && end <= Date.now();
+
+                  if (!isEnded) return null;
+
+                  return (
+                    <div className="mt-4 border border-gray-200 rounded-lg p-3 bg-gray-50">
+                      <p className="text-sm font-semibold text-gray-800 mb-2">Bidders (Auction Ended)</p>
+
+                      {v.bids && v.bids.length > 0 ? (
+                        <div className="space-y-2">
+                          {v.bids.map((bid) => (
+                            <div
+                              key={bid.id}
+                              className="flex items-center justify-between text-xs sm:text-sm bg-white border border-gray-200 rounded px-3 py-2"
+                            >
+                              <div className="min-w-0">
+                                <p className="font-medium text-gray-800 truncate">{bid.bidderName}</p>
+                                <p className="text-gray-500 truncate">{bid.bidderEmail}</p>
+                              </div>
+                              <p className="font-bold text-emerald-700 ml-3">Rs. {bid.amount.toLocaleString()}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500">No bids were placed for this vehicle.</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Actions */}
