@@ -256,7 +256,7 @@ export function VehicleDetail() {
           <img
             src={primaryImage}
             alt={`${vehicle.make} ${vehicle.model}`}
-            className="w-full object-cover min-h-[280px] max-h-[460px] rounded-xl cursor-zoom-in"
+            className="w-full h-[420px] object-contain bg-gray-100 rounded-xl cursor-zoom-in"
             onClick={() => setIsImageModalOpen(true)}
           />
 
@@ -283,7 +283,7 @@ export function VehicleDetail() {
                     <img
                       src={img}
                       alt={`${vehicle.make} ${vehicle.model} photo ${index + 1}`}
-                      className="w-full h-14 object-cover"
+                      className="w-full h-14 object-contain bg-gray-100"
                     />
                   </button>
                 ))}

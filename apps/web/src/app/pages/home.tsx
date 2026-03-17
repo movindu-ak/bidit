@@ -385,7 +385,7 @@ function VehicleCard({
             <img 
               src={vehicle.image || "https://via.placeholder.com/160x128"} 
               alt={`${vehicle.make} ${vehicle.model}`}
-              className="w-40 h-32 object-cover rounded border border-gray-200"
+              className="w-40 h-32 object-contain bg-gray-100 rounded border border-gray-200"
             />
           </div>
 
