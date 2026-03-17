@@ -51,6 +51,40 @@ export const authAPI = {
   },
 };
 
+export const favoritesAPI = {
+  getMyFavorites: async () => {
+    const authHeader = await getAuthHeader();
+    const response = await fetch(`${API_BASE_URL}/favorites`, {
+      headers: {
+        ...authHeader,
+      },
+    });
+    return response.json();
+  },
+
+  addFavorite: async (vehicleId: string) => {
+    const authHeader = await getAuthHeader();
+    const response = await fetch(`${API_BASE_URL}/favorites/${vehicleId}`, {
+      method: "POST",
+      headers: {
+        ...authHeader,
+      },
+    });
+    return response.json();
+  },
+
+  removeFavorite: async (vehicleId: string) => {
+    const authHeader = await getAuthHeader();
+    const response = await fetch(`${API_BASE_URL}/favorites/${vehicleId}`, {
+      method: "DELETE",
+      headers: {
+        ...authHeader,
+      },
+    });
+    return response.json();
+  },
+};
+
 // Vehicles API
 export const vehiclesAPI = {
   getAll: async (filters?: {
@@ -112,8 +146,12 @@ export const vehiclesAPI = {
   },
 
   getMyVehicles: async (ownerId: string) => {
-    // Route is currently public in backend (`GET /vehicles/owner/:ownerId`).
-    const response = await fetch(`${API_BASE_URL}/vehicles/owner/${ownerId}`);
+    const authHeader = await getAuthHeader();
+    const response = await fetch(`${API_BASE_URL}/vehicles/owner/${ownerId}`, {
+      headers: {
+        ...authHeader,
+      },
+    });
     return response.json();
   },
 };

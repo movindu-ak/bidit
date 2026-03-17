@@ -12,6 +12,7 @@ import { connectDB } from "./config/db.js";
 import authRouter from "./routes/auth.js";
 import auctionsRouter from "./routes/auctions.js";
 import bidsRouter from "./routes/bids.js";
+import favoritesRouter from "./routes/favorites.js";
 import healthRouter from "./routes/health.js"; // ✅ only if you created health.ts
 
 const app = express(); // ✅ MUST be before any app.use/app.get
@@ -45,6 +46,7 @@ app.use("/api/health", healthRouter); // if you created routes/health.ts
 app.use("/api/auth", authRouter);
 app.use("/api/vehicles", auctionsRouter);
 app.use("/api/bids", bidsRouter);
+app.use("/api/favorites", favoritesRouter);
 
 const PORT = Number(process.env.PORT || 4000);
 

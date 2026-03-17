@@ -124,7 +124,7 @@ export function MyAds() {
                   />
                 </Link>
               </div>
-
+              
               {/* Content */}
               <div className="flex-1">
                 <Link to={`/vehicle/${v.id}`} className="hover:text-[#00a8e8] transition-colors">

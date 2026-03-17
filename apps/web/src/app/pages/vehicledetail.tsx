@@ -22,14 +22,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { vehiclesAPI, bidsAPI } from "../../services/api";
+import { vehiclesAPI, bidsAPI, favoritesAPI } from "../../services/api";
 import { toast } from "sonner";
 import { auth } from "../../firebase/firebase";
-import {
-  isFavouriteVehicle,
-  toggleFavouriteVehicle,
-  type FavouriteVehicle,
-} from "../utils/favourites";
+import { onAuthStateChanged } from "firebase/auth";
 
 export function VehicleDetail() {
   const { id } = useParams();
@@ -37,7 +33,7 @@ export function VehicleDetail() {
   const [loading, setLoading] = useState(true);
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  const [bidAmount, setBidAmount] = useState<number>(0);
+  const [bidAmount, setBidAmount] = useState<string>("");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavourite, setIsFavourite] = useState(false);
 
@@ -47,6 +43,33 @@ export function VehicleDetail() {
     }
   }, [id]);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, () => {
+      if (vehicle?.id) {
+        syncFavouriteStatus(String(vehicle.id));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [vehicle?.id]);
+
+  const syncFavouriteStatus = async (vehicleId: string) => {
+    if (!auth.currentUser) {
+      setIsFavourite(false);
+      return;
+    }
+
+    try {
+      const favoritesResponse = await favoritesAPI.getMyFavorites();
+      const ids = Array.isArray(favoritesResponse?.favorites)
+        ? favoritesResponse.favorites
+        : [];
+      setIsFavourite(ids.includes(vehicleId));
+    } catch {
+      setIsFavourite(false);
+    }
+  };
+
   const loadVehicle = async () => {
     try {
       setLoading(true);
@@ -54,8 +77,8 @@ export function VehicleDetail() {
       const fetchedVehicle = data?.vehicle ?? null;
       setVehicle(fetchedVehicle);
       setSelectedImageIndex(0);
-      setIsFavourite(isFavouriteVehicle(String(fetchedVehicle?.id ?? "")));
-      setBidAmount((fetchedVehicle?.currentPrice ?? fetchedVehicle?.startingBid ?? 0) + 1000);
+      await syncFavouriteStatus(String(fetchedVehicle?.id ?? ""));
+      setBidAmount(String((fetchedVehicle?.currentPrice ?? fetchedVehicle?.startingBid ?? 0) + 5000));
     } catch (error) {
       console.error("Failed to load vehicle:", error);
       toast.error("Failed to load vehicle");
@@ -111,10 +134,11 @@ export function VehicleDetail() {
   })();
 
   const handlePlaceBid = async () => {
-    const user = JSON.parse(localStorage.getItem("user") || "null");
     const firebaseUser = auth.currentUser;
+    const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+    const numericBidAmount = Number(bidAmount);
     
-    if (!user || !firebaseUser) {
+    if (!firebaseUser) {
       toast.error("Please login to place a bid");
       return;
     }
@@ -124,18 +148,24 @@ export function VehicleDetail() {
       return;
     }
     
-    if (bidAmount <= currentPrice) {
+    if (!numericBidAmount || numericBidAmount <= currentPrice) {
       toast.error("Bid must be higher than current price");
+      return;
+    }
+
+    const increment = numericBidAmount - currentPrice;
+    if (increment % 5000 !== 0) {
+      toast.error("Bid increase must be in Rs. 5,000 increments");
       return;
     }
 
     try {
       const response = await bidsAPI.create({
         vehicleId: vehicle.id,
-        amount: bidAmount,
+        amount: numericBidAmount,
         bidderId: firebaseUser.uid,
-        bidderName: user.displayName || firebaseUser.displayName || "Anonymous",
-        bidderEmail: user.email || firebaseUser.email || "",
+        bidderName: firebaseUser.displayName || storedUser?.displayName || "Anonymous",
+        bidderEmail: firebaseUser.email || storedUser?.email || "",
       });
 
       if (response.error) {
@@ -148,6 +178,11 @@ export function VehicleDetail() {
     } catch (error: any) {
       toast.error(error.message || "Failed to place bid");
     }
+  };
+
+  const openBidModal = () => {
+    setBidAmount(String(currentPrice + 5000));
+    setIsBidModalOpen(true);
   };
 
   const selectedAuctionDays = Number(vehicle.auctionDays) > 0 ? Number(vehicle.auctionDays) : 7;
@@ -176,21 +211,31 @@ export function VehicleDetail() {
 
   const basePrice = vehicle.basePrice ?? startingBid;
 
-  const handleToggleFavourite = () => {
-    const favouriteVehicle: FavouriteVehicle = {
-      id: String(vehicle.id),
-      make: vehicle.make,
-      model: vehicle.model,
-      year: vehicle.year,
-      image: vehicleImages[0] || "",
-      currentPrice,
-      bidsCount: vehicle.bidsCount ?? vehicle.bids?.length ?? 0,
-      location: vehicle.location || "",
-    };
+  const handleToggleFavourite = async () => {
+    const user = auth.currentUser;
 
-    const nowFavourite = toggleFavouriteVehicle(favouriteVehicle);
-    setIsFavourite(nowFavourite);
-    toast.success(nowFavourite ? "Added to favourites" : "Removed from favourites");
+    if (!user) {
+      toast.error("Please sign in to save favorites");
+      return;
+    }
+
+    try {
+      const response = isFavourite
+        ? await favoritesAPI.removeFavorite(String(vehicle.id))
+        : await favoritesAPI.addFavorite(String(vehicle.id));
+
+      if (response?.error) {
+        toast.error(response.error);
+        return;
+      }
+
+      const ids = Array.isArray(response?.favorites) ? response.favorites : [];
+      const nowFavourite = ids.includes(String(vehicle.id));
+      setIsFavourite(nowFavourite);
+      toast.success(nowFavourite ? "Added to favourites" : "Removed from favourites");
+    } catch {
+      toast.error("Failed to update favourites");
+    }
   };
 
   return (
@@ -359,8 +404,11 @@ export function VehicleDetail() {
                     label={{ value: "Price (Rs.)", angle: -90, position: "insideLeft", fill: "#6b7280", fontSize: 11 }}
                   />
                   <Tooltip
-                    formatter={(v: number) => [`Rs. ${v.toLocaleString()}`, "Price"]}
-                    labelFormatter={(v: number) => `Day ${v}`}
+                    formatter={(v: number | string | undefined) => [
+                      `Rs. ${Number(v ?? 0).toLocaleString()}`,
+                      "Price",
+                    ]}
+                    labelFormatter={(label) => `Day ${String(label)}`}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                   />
                   <Line
@@ -393,7 +441,7 @@ export function VehicleDetail() {
 
           {/* Place Bid button */}
           <button
-            onClick={() => setIsBidModalOpen(true)}
+            onClick={openBidModal}
             disabled={isOwnerViewing}
             className="w-full py-3.5 bg-[#00a8e8] hover:bg-[#0096d1] disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white rounded-xl font-bold text-base transition-colors"
           >
@@ -532,9 +580,11 @@ export function VehicleDetail() {
                 <input
                   type="number"
                   step="5000"
+                  min={currentPrice + 5000}
                   placeholder="Enter amount"
+                  value={bidAmount}
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 text-lg font-semibold focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                  onChange={(e) => setBidAmount(Number(e.target.value))}
+                  onChange={(e) => setBidAmount(e.target.value)}
                 />
               </div>
 
@@ -543,7 +593,7 @@ export function VehicleDetail() {
                   <button
                     key={inc}
                     type="button"
-                    onClick={() => setBidAmount(currentPrice + inc)}
+                    onClick={() => setBidAmount(String(currentPrice + inc))}
                     className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-semibold transition-colors"
                   >
                     +{(inc / 1000).toFixed(0)}k
@@ -552,7 +602,7 @@ export function VehicleDetail() {
               </div>
 
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-                <strong>Note:</strong> Bids must be in Rs. 5,000 increments.
+                <strong>Note:</strong> Bid increase must be in Rs. 5,000 increments.
               </div>
 
               <button
