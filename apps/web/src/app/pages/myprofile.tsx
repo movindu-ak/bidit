@@ -137,8 +137,8 @@ export function MyProfile() {
 
   // Stats
   const [totalBids, setTotalBids] = useState<number>(0);
-  const [favourites] = useState<number>(0); // extend when favourites feature is added
-  const [walletBalance] = useState<number>(0); // extend when wallet feature is added
+  const [favourites, setFavourites] = useState<number>(0);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
 
   const [saving, setSaving] = useState(false);
 
@@ -158,17 +158,31 @@ export function MyProfile() {
           if (data?.phoneNumber) setPhone(data.phoneNumber);
           if (data?.displayName && !firebaseUser.displayName)
             setUsername(data.displayName);
+          if (typeof data?.walletBalance === "number") {
+            setWalletBalance(data.walletBalance);
+          }
+          if (Array.isArray(data?.favorites)) {
+            setFavourites(data.favorites.length);
+          }
         } catch {
           // backend may be offline — use Firebase data only
         }
 
         // Load total bids count
         try {
-          const bids = await bidsAPI.getUserBids(firebaseUser.uid);
-          if (Array.isArray(bids)) setTotalBids(bids.length);
+          const bidsResponse = await bidsAPI.getUserBids(firebaseUser.uid);
+          if (Array.isArray(bidsResponse?.bids)) {
+            setTotalBids(bidsResponse.bids.length);
+          } else if (Array.isArray(bidsResponse)) {
+            setTotalBids(bidsResponse.length);
+          }
         } catch {
           // ignore
         }
+      } else {
+        setTotalBids(0);
+        setFavourites(0);
+        setWalletBalance(0);
       }
     });
     return () => unsubscribe();

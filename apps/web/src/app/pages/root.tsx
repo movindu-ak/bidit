@@ -65,10 +65,6 @@ export function Root() {
               <Link to="/my-ads" className="hover:underline text-sm">
                 My Ads
               </Link>
-              <Link to="/favourites" className="flex items-center gap-1 hover:underline text-sm">
-                <Heart className="h-4 w-4" />
-                Favourites
-              </Link>
               {user && (
                 <Link
                   to="/profile"

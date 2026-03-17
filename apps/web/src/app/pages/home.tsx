@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Heart, MapPin } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
 import { toast } from "sonner";
-import { vehiclesAPI } from "../../services/api";
-import {
-  toggleFavouriteVehicle,
-  getFavouriteVehicles,
-  type FavouriteVehicle,
-} from "../utils/favourites";
+import { auth } from "../../firebase/firebase";
+import { favoritesAPI, vehiclesAPI } from "../../services/api";
 
 interface Vehicle {
   id: string;
@@ -15,6 +12,7 @@ interface Vehicle {
   model: string;
   year: number;
   image: string;
+  basePrice?: number;
   currentPrice: number;
   startingBid: number;
   bidsCount: number;
@@ -30,6 +28,7 @@ const EXAMPLE_VEHICLES: Vehicle[] = [
     model: "Aqua",
     year: 2022,
     image: "https://images.unsplash.com/photo-1626668893632-6f3a4466d22f?w=640&q=80",
+    basePrice: 7500,
     currentPrice: 7200,
     startingBid: 7000,
     bidsCount: 5,
@@ -43,6 +42,7 @@ const EXAMPLE_VEHICLES: Vehicle[] = [
     model: "Vezel",
     year: 2021,
     image: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=640&q=80",
+    basePrice: 9000,
     currentPrice: 8500,
     startingBid: 8000,
     bidsCount: 9,
@@ -56,6 +56,7 @@ const EXAMPLE_VEHICLES: Vehicle[] = [
     model: "Alto",
     year: 2023,
     image: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=640&q=80",
+    basePrice: 4500,
     currentPrice: 4100,
     startingBid: 4000,
     bidsCount: 3,
@@ -69,6 +70,7 @@ const EXAMPLE_VEHICLES: Vehicle[] = [
     model: "X-Trail",
     year: 2020,
     image: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=640&q=80",
+    basePrice: 11500,
     currentPrice: 11000,
     startingBid: 10500,
     bidsCount: 12,
@@ -82,6 +84,7 @@ const EXAMPLE_VEHICLES: Vehicle[] = [
     model: "320i",
     year: 2019,
     image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=640&q=80",
+    basePrice: 24500,
     currentPrice: 24000,
     startingBid: 22000,
     bidsCount: 18,
@@ -95,6 +98,7 @@ const EXAMPLE_VEHICLES: Vehicle[] = [
     model: "Outlander",
     year: 2021,
     image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=640&q=80",
+    basePrice: 14000,
     currentPrice: 13500,
     startingBid: 13000,
     bidsCount: 7,
@@ -113,8 +117,22 @@ export function Home() {
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const ids = new Set(getFavouriteVehicles().map((vehicle) => vehicle.id));
-    setFavouriteIds(ids);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setFavouriteIds(new Set());
+        return;
+      }
+
+      try {
+        const response = await favoritesAPI.getMyFavorites();
+        const ids = Array.isArray(response?.favorites) ? response.favorites : [];
+        setFavouriteIds(new Set(ids));
+      } catch {
+        setFavouriteIds(new Set());
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -148,6 +166,32 @@ export function Home() {
   };
 
   const filteredVehicles = vehicles;
+
+  const handleToggleFavourite = async (vehicleId: string) => {
+    if (!auth.currentUser) {
+      toast.error("Please sign in to save favorites");
+      return;
+    }
+
+    const isCurrentlyFavourite = favouriteIds.has(vehicleId);
+
+    try {
+      const response = isCurrentlyFavourite
+        ? await favoritesAPI.removeFavorite(vehicleId)
+        : await favoritesAPI.addFavorite(vehicleId);
+
+      if (response?.error) {
+        toast.error(response.error);
+        return;
+      }
+
+      const updatedFavorites = Array.isArray(response?.favorites) ? response.favorites : [];
+      setFavouriteIds(new Set(updatedFavorites));
+      toast.success(isCurrentlyFavourite ? "Removed from favourites" : "Added to favourites");
+    } catch {
+      toast.error("Failed to update favourites");
+    }
+  };
 
   const totalResults = filteredVehicles.length;
   const resultsPerPage = 40;
@@ -265,32 +309,7 @@ export function Home() {
             key={vehicle.id}
             vehicle={vehicle}
             isFavourite={favouriteIds.has(vehicle.id)}
-            onToggleFavourite={(vehicleToToggle) => {
-              const favVehicle: FavouriteVehicle = {
-                id: vehicleToToggle.id,
-                make: vehicleToToggle.make,
-                model: vehicleToToggle.model,
-                year: vehicleToToggle.year,
-                image: vehicleToToggle.image,
-                currentPrice: vehicleToToggle.currentPrice,
-                bidsCount: vehicleToToggle.bidsCount,
-                location: vehicleToToggle.location,
-              };
-
-              const isNowFavourite = toggleFavouriteVehicle(favVehicle);
-              setFavouriteIds((prev) => {
-                const next = new Set(prev);
-                if (isNowFavourite) next.add(vehicleToToggle.id);
-                else next.delete(vehicleToToggle.id);
-                return next;
-              });
-
-              toast.success(
-                isNowFavourite
-                  ? "Added to favourites"
-                  : "Removed from favourites"
-              );
-            }}
+            onToggleFavourite={handleToggleFavourite}
           />
         ))}
       </div>
@@ -329,9 +348,10 @@ function VehicleCard({
 }: {
   vehicle: Vehicle;
   isFavourite: boolean;
-  onToggleFavourite: (vehicle: Vehicle) => void;
+  onToggleFavourite: (vehicleId: string) => void;
 }) {
-  const priceLKR = vehicle.currentPrice.toLocaleString();
+  const basePriceLKR = (vehicle.basePrice ?? vehicle.startingBid).toLocaleString();
+  const currentPriceLKR = vehicle.currentPrice.toLocaleString();
 
   return (
     <Link 
@@ -344,7 +364,7 @@ function VehicleCard({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            onToggleFavourite(vehicle);
+            onToggleFavourite(vehicle.id);
           }}
           className="absolute top-3 right-3 p-1.5 rounded-full bg-white/90 border border-gray-200 hover:bg-gray-50"
           aria-label={isFavourite ? "Remove from favourites" : "Add to favourites"}
@@ -372,7 +392,16 @@ function VehicleCard({
           {/* Content on right */}
           <div className="flex-1 space-y-2">
             <p className="text-sm text-gray-600">{vehicle.location}</p>
-            <p className="text-xl font-bold text-green-700">Rs. {priceLKR}</p>
+            <div className="space-y-1">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400">Base Price</p>
+                <p className="text-sm font-semibold text-gray-700">Rs. {basePriceLKR}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400">Current Bid</p>
+                <p className="text-xl font-bold text-green-700">Rs. {currentPriceLKR}</p>
+              </div>
+            </div>
             <p className="text-sm text-gray-600">{vehicle.bidsCount} bids</p>
           </div>
         </div>

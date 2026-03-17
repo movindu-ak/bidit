@@ -30,7 +30,7 @@ export async function getAllVehicles(req: Request, res: Response) {
           year: vehicle.year,
           image: vehicle.images[0] || "",
           images: vehicle.images,
-          basePrice: vehicle.startingBid,
+          basePrice: vehicle.basePrice ?? vehicle.startingBid,
           currentPrice: highestBid ? highestBid.amount : vehicle.startingBid,
           startingBid: vehicle.startingBid,
           bidsCount: bids.length,

@@ -1,22 +1,89 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Heart, MapPin, Trash2 } from "lucide-react";
-import {
-  getFavouriteVehicles,
-  removeFavouriteVehicle,
-  type FavouriteVehicle,
-} from "../utils/favourites";
+import { onAuthStateChanged } from "firebase/auth";
+import { toast } from "sonner";
+import { auth } from "../../firebase/firebase";
+import { favoritesAPI, vehiclesAPI } from "../../services/api";
+
+type FavouriteVehicle = {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  image: string;
+  currentPrice: number;
+  bidsCount: number;
+  location: string;
+};
 
 export function Favourites() {
   const [favourites, setFavourites] = useState<FavouriteVehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    setFavourites(getFavouriteVehicles());
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setIsAuthenticated(false);
+        setFavourites([]);
+        setLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+      setLoading(true);
+
+      try {
+        const [favoritesResponse, vehiclesResponse] = await Promise.all([
+          favoritesAPI.getMyFavorites(),
+          vehiclesAPI.getAll(),
+        ]);
+
+        const favouriteIds: string[] = Array.isArray(favoritesResponse?.favorites)
+          ? favoritesResponse.favorites
+          : [];
+
+        const vehicles = Array.isArray(vehiclesResponse?.vehicles)
+          ? vehiclesResponse.vehicles
+          : [];
+
+        const favouriteVehicles = vehicles
+          .filter((vehicle: any) => favouriteIds.includes(String(vehicle.id)))
+          .map((vehicle: any) => ({
+            id: String(vehicle.id),
+            make: vehicle.make,
+            model: vehicle.model,
+            year: vehicle.year,
+            image: vehicle.image || vehicle.images?.[0] || "",
+            currentPrice: vehicle.currentPrice ?? vehicle.startingBid ?? 0,
+            bidsCount: vehicle.bidsCount ?? 0,
+            location: vehicle.location || "",
+          }));
+
+        setFavourites(favouriteVehicles);
+      } catch {
+        setFavourites([]);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleRemove = (id: string) => {
-    removeFavouriteVehicle(id);
-    setFavourites((prev) => prev.filter((vehicle) => vehicle.id !== id));
+  const handleRemove = async (id: string) => {
+    try {
+      const response = await favoritesAPI.removeFavorite(id);
+      if (response?.error) {
+        toast.error(response.error);
+        return;
+      }
+      setFavourites((prev) => prev.filter((vehicle) => vehicle.id !== id));
+      toast.success("Removed from favourites");
+    } catch {
+      toast.error("Failed to remove favourite");
+    }
   };
 
   return (
@@ -26,7 +93,18 @@ export function Favourites() {
         <h1 className="text-2xl font-bold text-gray-900">My Favourites</h1>
       </div>
 
-      {favourites.length === 0 ? (
+      {loading ? (
+        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+          <p className="text-gray-600">Loading favourites...</p>
+        </div>
+      ) : !isAuthenticated ? (
+        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+          <p className="text-gray-600">Please sign in to view favourites.</p>
+          <Link to="/auth" className="inline-block mt-3 text-[#00a8e8] hover:underline">
+            Sign in
+          </Link>
+        </div>
+      ) : favourites.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
           <p className="text-gray-600">No favourite vehicles yet.</p>
           <Link to="/" className="inline-block mt-3 text-[#00a8e8] hover:underline">
