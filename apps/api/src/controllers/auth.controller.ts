@@ -70,15 +70,29 @@ export async function login(req: Request, res: Response) {
     }
 
     const idToken = authHeader.slice(7);
-
     const decodedToken = await admin.auth().verifyIdToken(idToken);
 
-    const user = await User.findOne({
+    let user = await User.findOne({
       firebaseUid: decodedToken.uid,
     });
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      const nameFromToken =
+        (decodedToken as any).name ||
+        decodedToken.email?.split("@")[0] ||
+        "User";
+
+      const photoURL = (decodedToken as any).picture || null;
+
+      user = await User.create({
+        firebaseUid: decodedToken.uid,
+        email: decodedToken.email ?? "",
+        displayName: nameFromToken,
+        photoURL,
+        role: "user",
+        walletBalance: 0,
+        favorites: [],
+      });
     }
 
     return res.json({
