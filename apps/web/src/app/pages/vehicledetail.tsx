@@ -34,8 +34,11 @@ export function VehicleDetail() {
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [bidAmount, setBidAmount] = useState<string>("");
+  const [customIncrement, setCustomIncrement] = useState<string>("");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavourite, setIsFavourite] = useState(false);
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -52,6 +55,50 @@ export function VehicleDetail() {
 
     return () => unsubscribe();
   }, [vehicle?.id]);
+
+  useEffect(() => {
+    const locationText = String(vehicle?.location || "").trim();
+    if (!locationText) {
+      setLocationCoords(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const geocodeLocation = async () => {
+      try {
+        setIsLocationLoading(true);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(locationText)}`
+        );
+        const data = await response.json();
+        const first = Array.isArray(data) ? data[0] : null;
+
+        if (!cancelled && first?.lat && first?.lon) {
+          setLocationCoords({
+            lat: Number(first.lat),
+            lng: Number(first.lon),
+          });
+        } else if (!cancelled) {
+          setLocationCoords(null);
+        }
+      } catch {
+        if (!cancelled) {
+          setLocationCoords(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLocationLoading(false);
+        }
+      }
+    };
+
+    geocodeLocation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicle?.location]);
 
   const syncFavouriteStatus = async (vehicleId: string) => {
     if (!auth.currentUser) {
@@ -108,10 +155,15 @@ export function VehicleDetail() {
     ? vehicle.images
     : vehicle.image
       ? [vehicle.image]
-      : ["https://via.placeholder.com/1200x800"];
+      : ["https://placehold.co/1200x800?text=No+Image"];
   const activeImageIndex = Math.min(selectedImageIndex, vehicleImages.length - 1);
   const primaryImage = vehicleImages[activeImageIndex];
   const sellerName = vehicle.seller?.name || "Verified Seller";
+  const sellerTopic = `${vehicle.make ?? ""} ${vehicle.model ?? ""}`.trim();
+  const sellerTopicLower = sellerTopic.toLowerCase();
+  const yearText = String(vehicle.year ?? "").trim();
+  const hasYearInTopic = yearText.length > 0 && sellerTopicLower.includes(yearText.toLowerCase());
+  const adTitle = `${sellerTopic}${!hasYearInTopic && yearText ? ` ${yearText}` : ""}`.trim();
   const currentPrice = vehicle.currentPrice ?? vehicle.startingBid ?? 0;
   const startingBid = vehicle.startingBid ?? vehicle.basePrice ?? 0;
   const firebaseUser = auth.currentUser;
@@ -192,7 +244,24 @@ export function VehicleDetail() {
       return;
     }
     setBidAmount(String(currentPrice + 5000));
+    setCustomIncrement("");
     setIsBidModalOpen(true);
+  };
+
+  const applyCustomIncrement = () => {
+    const increment = Number(customIncrement);
+
+    if (!increment || increment <= 0) {
+      toast.error("Enter a valid custom increment");
+      return;
+    }
+
+    if (increment % 5000 !== 0) {
+      toast.error("Custom increment must be in Rs. 5,000 increments");
+      return;
+    }
+
+    setBidAmount(String(currentPrice + increment));
   };
 
   const selectedAuctionDays = Number(vehicle.auctionDays) > 0 ? Number(vehicle.auctionDays) : 7;
@@ -237,6 +306,13 @@ export function VehicleDetail() {
       ? `${(value / 1_000).toFixed(1)}k`
       : String(value);
 
+  const formatBidAmountInput = (value: string) => {
+    if (!value) return "";
+    const numeric = Number(value);
+    if (!numeric) return "";
+    return numeric.toLocaleString();
+  };
+
   const basePrice = vehicle.basePrice ?? startingBid;
 
   const handleToggleFavourite = async () => {
@@ -279,7 +355,7 @@ export function VehicleDetail() {
 
       {/* â”€â”€ Hero: Image | Info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left â€“ Vehicle Image */}
+        {/* Left - Vehicle Image */}
         <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white shadow-sm p-3 space-y-3">
           <img
             src={primaryImage}
@@ -320,12 +396,12 @@ export function VehicleDetail() {
           )}
         </div>
 
-        {/* Right â€“ Info Panel */}
+        {/* Right - Info Panel */}
         <div className="lg:col-span-3 flex flex-col gap-4">
           {/* Title row */}
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-2xl font-bold text-gray-900 leading-tight">
-              {vehicle.make} {vehicle.model} {vehicle.year} â€“{" "}
+              {adTitle}{" "}
               <span className="text-gray-600 font-medium">{vehicle.condition} Condition</span>
             </h1>
             <div className="flex items-center gap-2">
@@ -348,9 +424,46 @@ export function VehicleDetail() {
           </div>
 
           {/* Location */}
-          <div className="flex items-center gap-1.5 text-sm text-gray-500">
-            <MapPin className="h-4 w-4" />
-            <span>{vehicle.location || "Location not specified"}</span>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+            <div className="flex items-start gap-2 text-sm">
+              <MapPin className="h-4 w-4 mt-0.5 text-[#00a8e8]" />
+              <div>
+                <p className="font-semibold text-gray-800">Location</p>
+                <p className="text-gray-700">{vehicle.location || "Location not specified"}</p>
+                {locationCoords && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Coordinates: {locationCoords.lat.toFixed(6)}, {locationCoords.lng.toFixed(6)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {isLocationLoading && (
+              <p className="text-xs text-gray-500">Loading map preview...</p>
+            )}
+
+            {!isLocationLoading && locationCoords && (
+              <>
+                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                  <iframe
+                    title="Vehicle location map"
+                    src={`https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=${locationCoords.lat},${locationCoords.lng}`}
+                    className="w-full h-56"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="text-center">
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${locationCoords.lat}&mlon=${locationCoords.lng}#map=14/${locationCoords.lat}/${locationCoords.lng}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-[#00a8e8] hover:underline"
+                  >
+                    View larger map
+                  </a>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Description */}
@@ -363,7 +476,7 @@ export function VehicleDetail() {
             <div className="flex items-center gap-2 px-4 py-3 bg-sky-50 border border-sky-200 rounded-xl text-sm text-sky-800">
               <MessageCircle className="h-4 w-4 flex-shrink-0 text-sky-500" />
               <span>
-                <strong>Price is negotiable</strong> â€“ Seller is open to reasonable offers
+                <strong>Price is negotiable</strong> - Seller is open to reasonable offers
               </span>
             </div>
           )}
@@ -632,13 +745,12 @@ export function VehicleDetail() {
               <div>
                 <label className="text-sm font-semibold text-gray-700 mb-2 block">Your Bid Amount (Rs.)</label>
                 <input
-                  type="number"
-                  step="5000"
-                  min={currentPrice + 5000}
+                  type="text"
+                  inputMode="numeric"
                   placeholder="Enter amount"
-                  value={bidAmount}
+                  value={formatBidAmountInput(bidAmount)}
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 text-lg font-semibold focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                  onChange={(e) => setBidAmount(e.target.value)}
+                  onChange={(e) => setBidAmount(e.target.value.replace(/\D/g, ""))}
                 />
               </div>
 
@@ -653,6 +765,27 @@ export function VehicleDetail() {
                     +{(inc / 1000).toFixed(0)}k
                   </button>
                 ))}
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">Custom Increment (Rs.)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Enter increment (e.g. 15000)"
+                    value={formatBidAmountInput(customIncrement)}
+                    onChange={(e) => setCustomIncrement(e.target.value.replace(/\D/g, ""))}
+                    className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyCustomIncrement}
+                    className="px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-semibold transition-colors"
+                  >
+                    Apply
+                  </button>
+                </div>
               </div>
 
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">

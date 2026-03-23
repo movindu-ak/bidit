@@ -46,7 +46,7 @@ export const BRAND_GROUPS: SelectGroup[] = [
 
 // ── Simple dropdown options ────────────────────────────────────
 export const CATEGORY_OPTIONS: SelectOption[] = toOptions([
-  "Sedan", "SUV", "Hatchback", "Van", "Pickup", "Sports", "Electric",
+  "Cars", "SUVs", "Vans", "Motorbikes", "Lorries", "Three Wheels", "Pickups", "Heavy-Duty",
 ]);
 
 export const CONDITION_OPTIONS: SelectOption[] = toOptions([

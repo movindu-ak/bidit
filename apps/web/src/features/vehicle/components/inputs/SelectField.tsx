@@ -17,6 +17,7 @@ interface SelectFieldProps {
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   options?: SelectOption[];
   groups?: SelectGroup[];
+  extraOption?: SelectOption;
   required?: boolean;
   placeholder?: string;
 }
@@ -28,6 +29,7 @@ export function SelectField({
   onChange,
   options,
   groups,
+  extraOption,
   required = false,
   placeholder,
 }: SelectFieldProps) {
@@ -59,6 +61,9 @@ export function SelectField({
                 {opt.label}
               </option>
             ))}
+        {extraOption && (
+          <option value={extraOption.value}>{extraOption.label}</option>
+        )}
       </select>
     </div>
   );

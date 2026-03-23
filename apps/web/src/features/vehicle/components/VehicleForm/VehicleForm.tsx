@@ -130,8 +130,8 @@ export function VehicleForm() {
         category: vehicle.category,
         negotiationEnabled: vehicle.negotiationEnabled,
         specs: {
-          mileage: vehicle.mileage + " km",
-          engine: vehicle.engineCC + " cc",
+          mileage: Number(vehicle.mileage),
+          engine: Number(vehicle.engineCC),
           transmission: vehicle.transmission,
           fuel: vehicle.fuel,
           yearRegistered: Number(vehicle.yearRegistered),
@@ -153,7 +153,7 @@ export function VehicleForm() {
         images:
           uploadedUrls.length > 0
             ? uploadedUrls
-            : ["https://via.placeholder.com/800x600"],
+            : ["https://placehold.co/800x600?text=No+Image"],
         status: "active",
         bids: [],
       };
@@ -163,7 +163,12 @@ export function VehicleForm() {
         toast.error(response.error);
       } else {
         toast.success("Vehicle listing created successfully!");
-        navigate("/my-ads");
+        const createdVehicleId = response?.vehicle?._id || response?.vehicle?.id;
+        if (createdVehicleId) {
+          navigate(`/vehicle/${createdVehicleId}`, { replace: true });
+        } else {
+          navigate("/my-ads", { replace: true });
+        }
       }
     } catch (error: any) {
       console.error("Create vehicle error:", error);

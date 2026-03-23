@@ -30,6 +30,27 @@ export function BasicInfoSection({
   onChange,
   onLocationSelect,
 }: BasicInfoSectionProps) {
+  const knownBrands = BRAND_GROUPS.flatMap((group) =>
+    group.options.map((option) => String(option.value))
+  );
+  const isKnownBrand = knownBrands.includes(vehicle.make);
+  const isCustomBrand = Boolean(vehicle.make) && !isKnownBrand;
+  const makeSelectValue = isCustomBrand ? "__custom_brand__" : vehicle.make;
+
+  const handleMakeSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (e.target.value === "__custom_brand__") {
+      onChange({
+        target: {
+          name: "make",
+          value: "",
+        },
+      } as React.ChangeEvent<HTMLInputElement>);
+      return;
+    }
+
+    onChange(e);
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="font-bold text-gray-900 text-base border-b pb-2">
@@ -42,12 +63,25 @@ export function BasicInfoSection({
           <SelectField
             label="Make"
             name="make"
-            value={vehicle.make}
-            onChange={onChange}
+            value={makeSelectValue}
+            onChange={handleMakeSelectChange}
             groups={BRAND_GROUPS}
+            extraOption={{ value: "__custom_brand__", label: "Other (Enter custom brand)" }}
             required
             placeholder="Select brand"
           />
+          {makeSelectValue === "__custom_brand__" && (
+            <div className="mt-2">
+              <InputField
+                label="Custom Brand"
+                name="make"
+                value={vehicle.make}
+                onChange={onChange}
+                required
+                placeholder="Enter brand name"
+              />
+            </div>
+          )}
           {errors.make && (
             <p className="text-xs text-red-500 mt-1">{errors.make}</p>
           )}

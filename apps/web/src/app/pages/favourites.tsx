@@ -134,7 +134,7 @@ export function Favourites() {
 
                 <div className="flex gap-4">
                   <img
-                    src={vehicle.image || "https://via.placeholder.com/160x128"}
+                    src={vehicle.image || "https://placehold.co/160x128?text=No+Image"}
                     alt={`${vehicle.make} ${vehicle.model}`}
                     className="w-40 h-28 object-cover rounded border border-gray-200"
                   />

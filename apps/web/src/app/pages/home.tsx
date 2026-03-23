@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Heart, MapPin } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { toast } from "sonner";
@@ -108,13 +108,62 @@ const EXAMPLE_VEHICLES: Vehicle[] = [
   },
 ];
 
+const CATEGORY_OPTIONS = [
+  "Cars",
+  "SUVs",
+  "Vans",
+  "Motorbikes",
+  "Lorries",
+  "Three Wheels",
+  "Pickups",
+  "Heavy-Duty",
+] as const;
+
+const CATEGORY_ALIAS_MAP: Record<string, string[]> = {
+  Cars: ["car", "cars", "sedan", "hatchback", "sports", "electric"],
+  SUVs: ["suv", "suvs"],
+  Vans: ["van", "vans", "minivan", "minivans"],
+  Motorbikes: ["motorbike", "motorbikes", "motorcycle", "motorcycles", "bike", "bikes", "scooter", "scooters"],
+  Lorries: ["lorry", "lorries", "truck", "trucks"],
+  "Three Wheels": ["three wheel", "three wheels", "three-wheeler", "three-wheelers", "threewheels", "tuk tuk", "tuktuk"],
+  Pickups: ["pickup", "pickups", "pick-up", "pick-ups"],
+  "Heavy-Duty": ["heavy duty", "heavy-duty", "heavyduty", "tractor", "excavator", "loader"],
+};
+
+const normalizeCategory = (value: string) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const isCategoryMatch = (vehicleCategory: string, selectedCategory: string) => {
+  if (selectedCategory === "Any Category") return true;
+  const normalizedVehicleCategory = normalizeCategory(vehicleCategory);
+  const aliases = CATEGORY_ALIAS_MAP[selectedCategory] || [selectedCategory];
+  return aliases.map(normalizeCategory).includes(normalizedVehicleCategory);
+};
+
+const toSafeNumber = (value: unknown, fallback = 0) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
 export function Home() {
+  const [searchParams] = useSearchParams();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMake, setSelectedMake] = useState("Any Make");
+  const [selectedCategory, setSelectedCategory] = useState("Any Category");
   const [selectedCondition, setSelectedCondition] = useState("Any Condition");
   const [currentPage, setCurrentPage] = useState(1);
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get("category") || "Any Category";
+    const isSupportedCategory = CATEGORY_OPTIONS.includes(categoryFromUrl as typeof CATEGORY_OPTIONS[number]);
+    setSelectedCategory(isSupportedCategory ? categoryFromUrl : "Any Category");
+  }, [searchParams]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -137,21 +186,42 @@ export function Home() {
 
   useEffect(() => {
     loadVehicles();
-  }, [selectedMake, selectedCondition]);
+  }, [selectedMake, selectedCondition, selectedCategory]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedMake, selectedCondition]);
+  }, [selectedMake, selectedCondition, selectedCategory]);
 
   const loadVehicles = async () => {
     try {
       setLoading(true);
       const filters: any = {};
       if (selectedMake !== "Any Make") filters.make = selectedMake;
+      if (selectedCategory !== "Any Category") filters.category = selectedCategory;
       if (selectedCondition !== "Any Condition") filters.condition = selectedCondition;
       
       const data = await vehiclesAPI.getAll(filters);
-      const fetched: Vehicle[] = data.vehicles || [];
+      const fetchedRaw = Array.isArray(data?.vehicles) ? data.vehicles : [];
+      const fetched: Vehicle[] = fetchedRaw.map((v: any) => {
+        const startingBid = toSafeNumber(v?.startingBid);
+        const basePrice = v?.basePrice != null ? toSafeNumber(v.basePrice, startingBid) : undefined;
+        const currentPrice = toSafeNumber(v?.currentPrice, startingBid || basePrice || 0);
+
+        return {
+          id: String(v?.id ?? v?._id ?? ""),
+          make: String(v?.make ?? ""),
+          model: String(v?.model ?? ""),
+          year: toSafeNumber(v?.year),
+          image: String(v?.image ?? v?.images?.[0] ?? ""),
+          basePrice,
+          currentPrice,
+          startingBid,
+          bidsCount: toSafeNumber(v?.bidsCount),
+          location: String(v?.location ?? "Location not specified"),
+          condition: (v?.condition ?? "Good") as Vehicle["condition"],
+          category: String(v?.category ?? "Cars"),
+        };
+      });
 
       // Merge real vehicles first, then append examples that aren't duplicated
       const combined = [
@@ -169,7 +239,9 @@ export function Home() {
     }
   };
 
-  const filteredVehicles = vehicles;
+  const filteredVehicles = vehicles.filter((vehicle) =>
+    isCategoryMatch(vehicle.category, selectedCategory)
+  );
 
   const handleToggleFavourite = async (vehicleId: string) => {
     if (!auth.currentUser) {
@@ -237,10 +309,17 @@ export function Home() {
             className="px-4 py-2 border border-gray-300 rounded text-sm"
           />
           
-          <select className="px-4 py-2 border border-gray-300 rounded bg-white text-sm">
-            <option>Car</option>
-            <option>SUV</option>
-            <option>Van</option>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded bg-white text-sm"
+          >
+            <option>Any Category</option>
+            {CATEGORY_OPTIONS.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
           </select>
 
           <select 
@@ -367,8 +446,16 @@ function VehicleCard({
   isFavourite: boolean;
   onToggleFavourite: (vehicleId: string) => void;
 }) {
-  const basePriceLKR = (vehicle.basePrice ?? vehicle.startingBid).toLocaleString();
-  const currentPriceLKR = vehicle.currentPrice.toLocaleString();
+  const safeStartingBid = toSafeNumber(vehicle.startingBid);
+  const safeBasePrice = toSafeNumber(vehicle.basePrice, safeStartingBid);
+  const safeCurrentPrice = toSafeNumber(vehicle.currentPrice, safeStartingBid || safeBasePrice);
+  const basePriceLKR = safeBasePrice.toLocaleString();
+  const currentPriceLKR = safeCurrentPrice.toLocaleString();
+  const sellerTopic = `${vehicle.make ?? ""} ${vehicle.model ?? ""}`.trim();
+  const sellerTopicLower = sellerTopic.toLowerCase();
+  const yearText = String(vehicle.year ?? "").trim();
+  const hasYearInTopic = yearText.length > 0 && sellerTopicLower.includes(yearText.toLowerCase());
+  const adTitle = `${sellerTopic}${!hasYearInTopic && yearText ? ` ${yearText}` : ""}${vehicle.category ? ` ${vehicle.category}` : ""}`.trim();
 
   return (
     <Link 
@@ -393,14 +480,14 @@ function VehicleCard({
 
         {/* Title at top */}
         <h3 className="text-center text-base font-bold text-gray-900 mb-3">
-          {vehicle.make} {vehicle.model} {vehicle.year} Car
+          {adTitle}
         </h3>
         
         <div className="flex gap-4">
           {/* Image on left */}
           <div className="flex-shrink-0">
             <img 
-              src={vehicle.image || "https://via.placeholder.com/160x128"} 
+              src={vehicle.image || "https://placehold.co/160x128?text=No+Image"} 
               alt={`${vehicle.make} ${vehicle.model}`}
               className="w-40 h-32 object-contain bg-gray-100 rounded border border-gray-200"
             />

@@ -3,6 +3,14 @@ import { Bid } from "../models/bid.model.js";
 import { Vehicle } from "../models/vehicle.model.js";
 import type { AuthRequest } from "../middleware/requireAuth.js";
 
+function getStartingBid(vehicle: any): number {
+  return vehicle?.pricing?.startingBid ?? vehicle?.startingBid ?? 0;
+}
+
+function getAuctionEndDate(vehicle: any): Date | undefined {
+  return vehicle?.auction?.auctionEndDate ?? vehicle?.auctionEndDate;
+}
+
 // Create a new bid
 export async function createBid(req: AuthRequest, res: Response) {
   try {
@@ -28,7 +36,8 @@ export async function createBid(req: AuthRequest, res: Response) {
     }
 
     // Disallow bids after auction has ended
-    if (vehicle.auctionEndDate && new Date(vehicle.auctionEndDate).getTime() <= Date.now()) {
+    const auctionEndDate = getAuctionEndDate(vehicle);
+    if (auctionEndDate && new Date(auctionEndDate).getTime() <= Date.now()) {
       return res.status(403).json({ error: "Bidding has ended for this vehicle" });
     }
 
@@ -39,7 +48,7 @@ export async function createBid(req: AuthRequest, res: Response) {
 
     // Get current highest bid
     const highestBid = await Bid.findOne({ vehicleId }).sort({ amount: -1 });
-    const currentPrice = highestBid ? highestBid.amount : vehicle.startingBid;
+    const currentPrice = highestBid ? highestBid.amount : getStartingBid(vehicle);
 
     // Validate bid amount
     if (numericAmount <= currentPrice) {
@@ -129,7 +138,7 @@ export async function getUserBids(req: Request, res: Response) {
             location: vehicle.location,
           },
           myBid: bid.amount,
-          currentPrice: highestBid?.amount || vehicle.startingBid,
+          currentPrice: highestBid?.amount || getStartingBid(vehicle),
           status: isWinning ? "Winning" : "Outbid",
           date: bid.createdAt,
         };

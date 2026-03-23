@@ -93,12 +93,20 @@ export function MyBids() {
       {!loading && isAuthenticated && myBids.length > 0 && (
       <div className="space-y-4">
         {myBids.map((v) => (
+          (() => {
+            const sellerTopic = `${v.vehicle?.make ?? ""} ${v.vehicle?.model ?? ""}`.trim();
+            const sellerTopicLower = sellerTopic.toLowerCase();
+            const yearText = String(v.vehicle?.year ?? "").trim();
+            const hasYearInTopic = yearText.length > 0 && sellerTopicLower.includes(yearText.toLowerCase());
+            const adTitle = `${sellerTopic}${!hasYearInTopic && yearText ? ` ${yearText}` : ""}`.trim();
+
+            return (
           <div key={v.id} className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex gap-4">
               {/* Image */}
               <div className="flex-shrink-0">
                 <img 
-                  src={v.vehicle?.image || "https://via.placeholder.com/400x300"}
+                  src={v.vehicle?.image || "https://placehold.co/400x300?text=No+Image"}
                   alt={`${v.vehicle?.make} ${v.vehicle?.model}`}
                   className="w-48 h-36 object-cover rounded"
                 />
@@ -117,7 +125,7 @@ export function MyBids() {
                 </div>
                 
                 <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  {v.vehicle?.make} {v.vehicle?.model} {v.vehicle?.year} Car
+                  {adTitle}
                 </h3>
                 
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
@@ -156,6 +164,8 @@ export function MyBids() {
               </div>
             </div>
           </div>
+            );
+          })()
         ))}
       </div>
       )}

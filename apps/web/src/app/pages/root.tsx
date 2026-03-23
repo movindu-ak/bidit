@@ -6,10 +6,10 @@ import { auth } from "../../firebase/firebase";
 import { toast } from "sonner";
 import { 
   Car, 
-  Heart, 
+  Bike,
   Truck,
   Bus,
-  Gavel,
+  Pickaxe,
   UserCircle,
 } from "lucide-react";
 
@@ -86,35 +86,53 @@ export function Root() {
       <div className="bg-white border-b border-gray-200">
         <div className="mx-auto max-w-7xl px-4 py-6">
           <div className="flex items-center justify-center gap-8 flex-wrap">
-            <Link to="/" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
+            <Link to="/?category=Cars" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
               <div className="bg-gray-100 p-4 rounded">
                 <Car className="h-6 w-6" />
               </div>
               <span className="text-sm">Buy Cars</span>
             </Link>
-            <Link to="/" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
+            <Link to="/?category=SUVs" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
               <div className="bg-gray-100 p-4 rounded">
-                <Truck className="h-6 w-6" />
+                <Car className="h-6 w-6" />
               </div>
               <span className="text-sm">Buy SUVs</span>
             </Link>
-            <Link to="/" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
+            <Link to="/?category=Vans" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
               <div className="bg-gray-100 p-4 rounded">
                 <Bus className="h-6 w-6" />
               </div>
               <span className="text-sm">Buy Vans</span>
             </Link>
-            <Link to="/my-bids" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
+            <Link to="/?category=Motorbikes" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
               <div className="bg-gray-100 p-4 rounded">
-                <Gavel className="h-6 w-6" />
+                <Bike className="h-6 w-6" />
               </div>
-              <span className="text-sm">My Bids</span>
+              <span className="text-sm">Buy Motorbikes</span>
             </Link>
-            <Link to="/favourites" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
+            <Link to="/?category=Lorries" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
               <div className="bg-gray-100 p-4 rounded">
-                <Heart className="h-6 w-6" />
+                <Truck className="h-6 w-6" />
               </div>
-              <span className="text-sm">Favourites</span>
+              <span className="text-sm">Buy Lorries</span>
+            </Link>
+            <Link to="/?category=Three Wheels" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
+              <div className="bg-gray-100 p-4 rounded">
+                <Bus className="h-6 w-6" />
+              </div>
+              <span className="text-sm">Buy Three Wheels</span>
+            </Link>
+            <Link to="/?category=Pickups" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
+              <div className="bg-gray-100 p-4 rounded">
+                <Truck className="h-6 w-6" />
+              </div>
+              <span className="text-sm">Buy Pickups</span>
+            </Link>
+            <Link to="/?category=Heavy-Duty" className="flex flex-col items-center gap-2 text-gray-700 hover:text-[#00a8e8] transition-colors">
+              <div className="bg-gray-100 p-4 rounded">
+                <Pickaxe className="h-6 w-6" />
+              </div>
+              <span className="text-sm">Buy Heavy-Duty</span>
             </Link>
           </div>
         </div>

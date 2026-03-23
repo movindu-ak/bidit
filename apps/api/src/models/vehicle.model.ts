@@ -4,23 +4,51 @@ export interface IVehicle {
   ownerId: string;
   make: string;
   model: string;
+  normalizedMake: string;
+  normalizedModel: string;
   year: number;
   images: string[];
   condition: "New" | "Excellent" | "Good" | "Fair";
-  category: "Sedan" | "SUV" | "Sports" | "Electric" | "Van" | "Truck";
+  category:
+    | "Cars"
+    | "SUVs"
+    | "Vans"
+    | "Motorbikes"
+    | "Lorries"
+    | "Three Wheels"
+    | "Pickups"
+    | "Heavy-Duty"
+    | "Sedan"
+    | "SUV"
+    | "Sports"
+    | "Electric"
+    | "Van"
+    | "Truck";
   specs: {
-    mileage: string;
-    engine: string;
+    mileageKm: number;
+    engineCc: number;
     transmission: string;
     fuel: string;
+    yearRegistered?: number;
+    previousOwners?: number;
+    primaryUsage?: string;
+    insuranceClaims?: number;
+    tireCondition?: number;
+    batteryCondition?: number;
+    interiorCondition?: number;
+    exteriorCondition?: number;
   };
   location: string;
   description?: string;
-  basePrice?: number;       // seller's stated market value
-  startingBid: number;     // confirmed auction opening bid
-  negotiationEnabled?: boolean;
-  auctionDays?: number;
-  auctionEndDate: Date;
+  pricing: {
+    basePrice?: number;
+    startingBid: number;
+    negotiationEnabled?: boolean;
+  };
+  auction: {
+    auctionDays?: number;
+    auctionEndDate: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +58,8 @@ const VehicleSchema = new Schema<IVehicle>(
     ownerId: { type: String, required: true },
     make: { type: String, required: true },
     model: { type: String, required: true },
+    normalizedMake: { type: String, required: true, lowercase: true, trim: true },
+    normalizedModel: { type: String, required: true, lowercase: true, trim: true },
     year: { type: Number, required: true },
     images: { type: [String], default: [] },
     condition: {
@@ -39,22 +69,49 @@ const VehicleSchema = new Schema<IVehicle>(
     },
     category: {
       type: String,
-      enum: ["Sedan", "SUV", "Sports", "Electric", "Van", "Truck"],
+      enum: [
+        "Cars",
+        "SUVs",
+        "Vans",
+        "Motorbikes",
+        "Lorries",
+        "Three Wheels",
+        "Pickups",
+        "Heavy-Duty",
+        "Sedan",
+        "SUV",
+        "Sports",
+        "Electric",
+        "Van",
+        "Truck",
+      ],
       required: true,
     },
     specs: {
-      mileage: { type: String, required: true },
-      engine: { type: String, required: true },
+      mileageKm: { type: Number, required: true },
+      engineCc: { type: Number, required: true },
       transmission: { type: String, required: true },
       fuel: { type: String, required: true },
+      yearRegistered: { type: Number },
+      previousOwners: { type: Number },
+      primaryUsage: { type: String },
+      insuranceClaims: { type: Number },
+      tireCondition: { type: Number },
+      batteryCondition: { type: Number },
+      interiorCondition: { type: Number },
+      exteriorCondition: { type: Number },
     },
     location: { type: String, required: true },
     description: { type: String },
-    basePrice: { type: Number },
-    startingBid: { type: Number, required: true },
-    negotiationEnabled: { type: Boolean, default: false },
-    auctionDays: { type: Number, default: 3 },
-    auctionEndDate: { type: Date, required: true },
+    pricing: {
+      basePrice: { type: Number },
+      startingBid: { type: Number, required: true },
+      negotiationEnabled: { type: Boolean, default: false },
+    },
+    auction: {
+      auctionDays: { type: Number, default: 3 },
+      auctionEndDate: { type: Date, required: true },
+    },
   },
   { timestamps: true }
 );

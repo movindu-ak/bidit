@@ -43,7 +43,7 @@ export const initialVehicleData: VehicleFormData = {
   yearManufactured: 2024,
   yearRegistered: 2024,
   condition: "Excellent",
-  category: "Sedan",
+  category: "Cars",
   location: "",
   mileage: "",
   engineCC: "",

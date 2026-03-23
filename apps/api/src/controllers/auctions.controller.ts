@@ -3,6 +3,174 @@ import { Vehicle } from "../models/vehicle.model.js";
 import { Bid } from "../models/bid.model.js";
 import type { AuthRequest } from "../middleware/requireAuth.js";
 
+function toNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return undefined;
+  const cleaned = value.replace(/[^\d.-]/g, "").trim();
+  if (!cleaned) return undefined;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function toTitleCase(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeToken(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed.toLowerCase().replace(/\s+/g, "");
+}
+
+function normalizeCategory(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const key = value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const map: Record<string, string> = {
+    cars: "Cars",
+    car: "Cars",
+    suvs: "SUVs",
+    suv: "SUV",
+    vans: "Vans",
+    van: "Van",
+    motorbikes: "Motorbikes",
+    motorbike: "Motorbikes",
+    motorcycles: "Motorbikes",
+    lorries: "Lorries",
+    lorry: "Lorries",
+    threewheels: "Three Wheels",
+    pickups: "Pickups",
+    pickup: "Pickups",
+    heavyduty: "Heavy-Duty",
+    sports: "Sports",
+    electric: "Electric",
+    truck: "Truck",
+  };
+
+  return map[key] ?? toTitleCase(value);
+}
+
+function getPricing(vehicle: any) {
+  return {
+    basePrice: vehicle?.pricing?.basePrice ?? vehicle?.basePrice,
+    startingBid: vehicle?.pricing?.startingBid ?? vehicle?.startingBid,
+    negotiationEnabled: vehicle?.pricing?.negotiationEnabled ?? vehicle?.negotiationEnabled ?? false,
+  };
+}
+
+function getAuction(vehicle: any) {
+  return {
+    auctionDays: vehicle?.auction?.auctionDays ?? vehicle?.auctionDays,
+    auctionEndDate: vehicle?.auction?.auctionEndDate ?? vehicle?.auctionEndDate,
+  };
+}
+
+function getSpecsForClient(vehicle: any) {
+  const specs = vehicle?.specs ?? {};
+  const mileageKm = specs.mileageKm ?? toNumber(specs.mileage);
+  const engineCc = specs.engineCc ?? toNumber(specs.engine);
+
+  return {
+    mileage: mileageKm != null ? `${mileageKm} km` : specs.mileage,
+    engine: engineCc != null ? `${engineCc} cc` : specs.engine,
+    transmission: specs.transmission,
+    fuel: specs.fuel,
+    yearRegistered: specs.yearRegistered,
+    previousOwners:
+      specs.previousOwners != null ? String(specs.previousOwners) : undefined,
+    primaryUsage: specs.primaryUsage,
+    insuranceClaims:
+      specs.insuranceClaims != null ? String(specs.insuranceClaims) : undefined,
+    tireCondition: specs.tireCondition,
+    batteryCondition: specs.batteryCondition,
+    interiorCondition: specs.interiorCondition,
+    exteriorCondition: specs.exteriorCondition,
+  };
+}
+
+function normalizeVehiclePayload(raw: any) {
+  const specs = raw?.specs ?? {};
+  const pricing = raw?.pricing ?? {};
+  const auction = raw?.auction ?? {};
+
+  const make = toTitleCase(raw?.make) ?? "";
+  const model = toTitleCase(raw?.model) ?? "";
+  const normalizedMake = normalizeToken(make) ?? "";
+  const normalizedModel = normalizeToken(model) ?? "";
+
+  const mileageKm = toNumber(specs.mileageKm ?? specs.mileage);
+  const engineCc = toNumber(specs.engineCc ?? specs.engine ?? specs.engineCapacity);
+  const yearRegistered = toNumber(specs.yearRegistered);
+  const previousOwners = toNumber(specs.previousOwners);
+  const insuranceClaims = toNumber(specs.insuranceClaims);
+  const tireCondition = toNumber(specs.tireCondition);
+  const batteryCondition = toNumber(specs.batteryCondition);
+  const interiorCondition = toNumber(specs.interiorCondition);
+  const exteriorCondition = toNumber(specs.exteriorCondition);
+
+  const transmission = toTitleCase(specs.transmission) ?? "";
+  const fuel = toTitleCase(specs.fuel ?? specs.fuelType) ?? "";
+  const primaryUsage = toTitleCase(specs.primaryUsage);
+  const condition = toTitleCase(raw?.condition) as any;
+  const category = normalizeCategory(raw?.category) as any;
+  const location = toTitleCase(raw?.location) ?? "";
+  const description = toTitleCase(raw?.description);
+
+  const basePrice = toNumber(pricing.basePrice ?? raw.basePrice);
+  const negotiationEnabled =
+    typeof (pricing.negotiationEnabled ?? raw.negotiationEnabled) === "boolean"
+      ? (pricing.negotiationEnabled ?? raw.negotiationEnabled)
+      : false;
+
+  const auctionDays = toNumber(auction.auctionDays ?? raw.auctionDays);
+  const auctionEndDate =
+    auction.auctionEndDate ?? raw.auctionEndDate ?? new Date().toISOString();
+
+  return {
+    make,
+    model,
+    normalizedMake,
+    normalizedModel,
+    year: toNumber(raw?.year) as number,
+    condition,
+    category,
+    location,
+    ...(description ? { description } : {}),
+    images: Array.isArray(raw?.images) ? raw.images : [],
+    specs: {
+      mileageKm: mileageKm as number,
+      engineCc: engineCc as number,
+      transmission,
+      fuel,
+      ...(yearRegistered != null ? { yearRegistered } : {}),
+      ...(previousOwners != null ? { previousOwners } : {}),
+      ...(primaryUsage ? { primaryUsage } : {}),
+      ...(insuranceClaims != null ? { insuranceClaims } : {}),
+      ...(tireCondition != null ? { tireCondition } : {}),
+      ...(batteryCondition != null ? { batteryCondition } : {}),
+      ...(interiorCondition != null ? { interiorCondition } : {}),
+      ...(exteriorCondition != null ? { exteriorCondition } : {}),
+    },
+    pricing: {
+      ...(basePrice != null ? { basePrice } : {}),
+      startingBid: toNumber(pricing.startingBid ?? raw.startingBid) as number,
+      negotiationEnabled,
+    },
+    auction: {
+      ...(auctionDays != null ? { auctionDays } : {}),
+      auctionEndDate,
+    },
+  };
+}
+
 // Get all vehicles/auctions
 export async function getAllVehicles(req: Request, res: Response) {
   try {
@@ -12,8 +180,8 @@ export async function getAllVehicles(req: Request, res: Response) {
     
     if (make && make !== "Any Make") filter.make = make;
     if (condition && condition !== "Any Condition") filter.condition = condition;
-    if (minPrice) filter.startingBid = { ...filter.startingBid, $gte: Number(minPrice) };
-    if (maxPrice) filter.startingBid = { ...filter.startingBid, $lte: Number(maxPrice) };
+    if (minPrice) filter["pricing.startingBid"] = { ...filter["pricing.startingBid"], $gte: Number(minPrice) };
+    if (maxPrice) filter["pricing.startingBid"] = { ...filter["pricing.startingBid"], $lte: Number(maxPrice) };
 
     const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 });
 
@@ -22,6 +190,8 @@ export async function getAllVehicles(req: Request, res: Response) {
       vehicles.map(async (vehicle) => {
         const bids = await Bid.find({ vehicleId: vehicle._id.toString() }).sort({ amount: -1 });
         const highestBid = bids[0];
+        const pricing = getPricing(vehicle);
+        const auction = getAuction(vehicle);
         
         return {
           id: vehicle._id,
@@ -30,16 +200,16 @@ export async function getAllVehicles(req: Request, res: Response) {
           year: vehicle.year,
           image: vehicle.images[0] || "",
           images: vehicle.images,
-          basePrice: vehicle.basePrice ?? vehicle.startingBid,
-          currentPrice: highestBid ? highestBid.amount : vehicle.startingBid,
-          startingBid: vehicle.startingBid,
+          basePrice: pricing.basePrice ?? pricing.startingBid,
+          currentPrice: highestBid ? highestBid.amount : pricing.startingBid,
+          startingBid: pricing.startingBid,
           bidsCount: bids.length,
           location: vehicle.location,
           condition: vehicle.condition,
           category: vehicle.category,
-          specs: vehicle.specs,
+          specs: getSpecsForClient(vehicle),
           description: vehicle.description,
-          endingAt: vehicle.auctionEndDate,
+          endingAt: auction.auctionEndDate,
           ownerId: vehicle.ownerId,
         };
       })
@@ -64,6 +234,8 @@ export async function getVehicleById(req: Request, res: Response) {
 
     const bids = await Bid.find({ vehicleId: id as string }).sort({ amount: -1 });
     const highestBid = bids[0];
+    const pricing = getPricing(vehicle);
+    const auction = getAuction(vehicle);
 
     return res.json({
       vehicle: {
@@ -72,16 +244,16 @@ export async function getVehicleById(req: Request, res: Response) {
         model: vehicle.model,
         year: vehicle.year,
         images: vehicle.images,
-        basePrice: vehicle.basePrice ?? vehicle.startingBid,
-        currentPrice: highestBid ? highestBid.amount : vehicle.startingBid,
-        startingBid: vehicle.startingBid,
-        negotiationEnabled: vehicle.negotiationEnabled ?? false,
+        basePrice: pricing.basePrice ?? pricing.startingBid,
+        currentPrice: highestBid ? highestBid.amount : pricing.startingBid,
+        startingBid: pricing.startingBid,
+        negotiationEnabled: pricing.negotiationEnabled ?? false,
         auctionDays:
-          vehicle.auctionDays ??
+          auction.auctionDays ??
           Math.max(
             1,
             Math.ceil(
-              (new Date(vehicle.auctionEndDate).getTime() - new Date(vehicle.createdAt).getTime()) /
+              (new Date(auction.auctionEndDate).getTime() - new Date(vehicle.createdAt).getTime()) /
                 (1000 * 60 * 60 * 24)
             )
           ),
@@ -89,9 +261,9 @@ export async function getVehicleById(req: Request, res: Response) {
         location: vehicle.location,
         condition: vehicle.condition,
         category: vehicle.category,
-        specs: vehicle.specs,
+        specs: getSpecsForClient(vehicle),
         description: vehicle.description,
-        endingAt: vehicle.auctionEndDate,
+        endingAt: auction.auctionEndDate,
         createdAt: vehicle.createdAt,
         ownerId: vehicle.ownerId,
         bids: bids.map(bid => ({
@@ -113,7 +285,7 @@ export async function createVehicle(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
 
-    const vehicleData = req.body;
+    const vehicleData = normalizeVehiclePayload(req.body);
 
     // ✅ ownerId from Firebase token
     const ownerId = req.user.uid;
@@ -137,7 +309,7 @@ export async function createVehicle(req: AuthRequest, res: Response) {
 export async function updateVehicle(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = normalizeVehiclePayload(req.body);
 
     const vehicle = await Vehicle.findByIdAndUpdate(id, updateData, { new: true });
 
@@ -196,7 +368,9 @@ export async function getMyVehicles(req: AuthRequest, res: Response) {
       vehicles.map(async (vehicle) => {
         const bids = await Bid.find({ vehicleId: vehicle._id.toString() }).sort({ amount: -1 });
         const highestBid = bids[0];
-        const isAuctionEnded = new Date(vehicle.auctionEndDate).getTime() <= Date.now();
+        const pricing = getPricing(vehicle);
+        const auction = getAuction(vehicle);
+        const isAuctionEnded = new Date(auction.auctionEndDate).getTime() <= Date.now();
         
         return {
           id: vehicle._id,
@@ -204,11 +378,11 @@ export async function getMyVehicles(req: AuthRequest, res: Response) {
           model: vehicle.model,
           year: vehicle.year,
           image: vehicle.images[0] || "",
-          currentPrice: highestBid ? highestBid.amount : vehicle.startingBid,
+          currentPrice: highestBid ? highestBid.amount : pricing.startingBid,
           bidsCount: bids.length,
           condition: vehicle.condition,
           location: vehicle.location,
-          endingAt: vehicle.auctionEndDate,
+          endingAt: auction.auctionEndDate,
           bids: isAuctionEnded
             ? bids.map((bid) => ({
                 id: bid._id,

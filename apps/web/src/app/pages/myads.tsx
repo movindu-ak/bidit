@@ -119,13 +119,21 @@ export function MyAds() {
       {!loading && isAuthenticated && myVehicles.length > 0 && (
         <div className="space-y-4">
         {myVehicles.map((v) => (
+          (() => {
+            const sellerTopic = `${v.make ?? ""} ${v.model ?? ""}`.trim();
+            const sellerTopicLower = sellerTopic.toLowerCase();
+            const yearText = String(v.year ?? "").trim();
+            const hasYearInTopic = yearText.length > 0 && sellerTopicLower.includes(yearText.toLowerCase());
+            const adTitle = `${sellerTopic}${!hasYearInTopic && yearText ? ` ${yearText}` : ""}`.trim();
+
+            return (
           <div key={v.id} className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex gap-4">
               {/* Image */}
               <div className="flex-shrink-0">
                 <Link to={`/vehicle/${v.id}`}>
                   <img 
-                    src={v.image || "https://via.placeholder.com/400x300"} 
+                    src={v.image || "https://placehold.co/400x300?text=No+Image"} 
                     alt={`${v.make} ${v.model}`}
                     className="w-48 h-36 object-contain bg-gray-100 rounded"
                   />
@@ -136,7 +144,7 @@ export function MyAds() {
               <div className="flex-1">
                 <Link to={`/vehicle/${v.id}`} className="hover:text-[#00a8e8] transition-colors">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">
-                    {v.make} {v.model} {v.year} Car
+                    {adTitle}
                   </h3>
                 </Link>
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
@@ -209,6 +217,8 @@ export function MyAds() {
               </div>
             </div>
           </div>
+            );
+          })()
         ))}
         </div>
       )}
