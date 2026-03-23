@@ -1,4 +1,5 @@
 import { Plus, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface MediaUploadSectionProps {
   previews: string[];
@@ -12,11 +13,12 @@ export function MediaUploadSection({
   onSelect,
   onRemove,
 }: MediaUploadSectionProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4 pt-2 border-t border-gray-200">
       <h3 className="font-bold text-gray-900 text-base">
-        Photos{" "}
-        <span className="text-xs text-gray-400 font-normal">(max 6 images)</span>
+        {t("vehicleForm.photos")}{" "}
+        <span className="text-xs text-gray-400 font-normal">({t("vehicleForm.maxImages")})</span>
       </h3>
 
       <input
@@ -56,14 +58,14 @@ export function MediaUploadSection({
           >
             <Plus className="h-8 w-8 text-gray-400" />
             <span className="text-xs text-gray-500 text-center px-2">
-              Click to upload
+              {t("vehicleForm.clickToUpload")}
             </span>
           </label>
         )}
       </div>
 
       <p className="text-xs text-gray-400">
-        Accepted: JPG, PNG, WEBP — up to 6 photos
+        {t("vehicleForm.acceptedFormats")}
       </p>
     </div>
   );

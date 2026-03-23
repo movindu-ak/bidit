@@ -11,8 +11,10 @@ import {
 } from "firebase/auth";
 import { toast } from "sonner";
 import { auth } from "../../firebase/firebase";
+import { useTranslation } from "react-i18next";
 
 export function Auth() {
+  const { t } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,11 +38,11 @@ export function Auth() {
         return;
       }
 
-      toast.success("Google sign-in successful!");
+      toast.success(t("auth.toast.googleSuccess"));
       navigate("/");
     } catch (error: any) {
       console.error("Google auth error:", error);
-      toast.error(error?.message || "Google authentication failed");
+      toast.error(error?.message || t("auth.toast.googleFailed"));
     } finally {
       setLoading(false);
     }
@@ -50,7 +52,7 @@ export function Auth() {
     e.preventDefault();
 
     if (!isLogin && password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t("auth.toast.passwordMismatch"));
       return;
     }
 
@@ -68,7 +70,7 @@ export function Auth() {
         }
         setPassword("");
         setConfirmPassword("");
-        toast.success("Login successful!");
+        toast.success(t("auth.toast.loginSuccess"));
         navigate("/");
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -80,12 +82,12 @@ export function Auth() {
         }
         setPassword("");
         setConfirmPassword("");
-        toast.success("Account created successfully!");
+        toast.success(t("auth.toast.registerSuccess"));
         navigate("/");
       }
     } catch (error: any) {
       console.error("Auth error:", error);
-      toast.error(error?.message || "Authentication failed");
+      toast.error(error?.message || t("auth.toast.authFailed"));
     } finally {
       setLoading(false);
     }
@@ -95,27 +97,27 @@ export function Auth() {
     <div className="max-w-md mx-auto py-12 space-y-6">
       <div className="text-sm text-gray-600">
         <Link to="/" className="text-[#00a8e8] hover:underline">
-          Home
+          {t("nav.home")}
         </Link>{" "}
-        /<span> {isLogin ? "Login" : "Register"}</span>
+        /<span> {isLogin ? t("auth.login") : t("auth.register")}</span>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-8">
         <h1 className="text-2xl font-bold text-center mb-6">
-          {isLogin ? "Login to Your Account" : "Create an Account"}
+          {isLogin ? t("auth.loginTitle") : t("auth.registerTitle")}
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <div>
               <label className="block text-sm text-gray-700 mb-1">
-                Display Name
+                {t("auth.displayName")}
               </label>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="John Doe"
+                placeholder={t("auth.displayNamePlaceholder")}
                 required
                 className="w-full border border-gray-300 rounded px-4 py-2 text-sm focus:outline-none focus:border-[#00a8e8]"
               />
@@ -123,12 +125,12 @@ export function Auth() {
           )}
 
           <div>
-            <label className="block text-sm text-gray-700 mb-1">Email</label>
+            <label className="block text-sm text-gray-700 mb-1">{t("auth.email")}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
+              placeholder={t("auth.emailPlaceholder")}
               required
               className="w-full border border-gray-300 rounded px-4 py-2 text-sm focus:outline-none focus:border-[#00a8e8]"
             />
@@ -136,7 +138,7 @@ export function Auth() {
 
           <div>
             <label className="block text-sm text-gray-700 mb-1">
-              Password
+                {t("auth.password")}
             </label>
             <input
               type="password"
@@ -152,7 +154,7 @@ export function Auth() {
           {!isLogin && (
             <div>
               <label className="block text-sm text-gray-700 mb-1">
-                Confirm Password
+                {t("auth.confirmPassword")}
               </label>
               <input
                 type="password"
@@ -169,7 +171,7 @@ export function Auth() {
           {isLogin && (
             <div className="flex justify-end">
               <a href="#" className="text-sm text-[#00a8e8] hover:underline">
-                Forgot password?
+                {t("auth.forgotPassword")}
               </a>
             </div>
           )}
@@ -179,7 +181,7 @@ export function Auth() {
             disabled={loading}
             className="w-full py-3 bg-[#00a8e8] hover:bg-[#0096d1] text-white rounded font-semibold transition-colors disabled:opacity-50"
           >
-            {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
+            {loading ? t("auth.pleaseWait") : isLogin ? t("auth.signIn") : t("auth.createAccount")}
           </button>
         </form>
 
@@ -188,7 +190,7 @@ export function Auth() {
             <div className="w-full border-t border-gray-300"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-gray-500">or</span>
+            <span className="bg-white px-2 text-gray-500">{t("auth.or")}</span>
           </div>
         </div>
 
@@ -216,7 +218,7 @@ export function Auth() {
               d="M21.6 12.2c0-.7-.1-1.2-.2-1.8H12v3.9h5.5c-.3 1.2-1.1 2.3-2.1 3.1l2.9 2.3c1.7-1.6 3.3-4.1 3.3-7.5z"
             />
           </svg>
-          <span>Continue with Google</span>
+          <span>{t("auth.continueGoogle")}</span>
         </button>
 
         <div className="mt-6 text-center">
@@ -224,9 +226,9 @@ export function Auth() {
             onClick={() => setIsLogin(!isLogin)}
             className="text-sm text-gray-600"
           >
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
+            {isLogin ? t("auth.noAccount") : t("auth.haveAccount")}
             <span className="text-[#00a8e8] hover:underline">
-              {isLogin ? "Register" : "Sign in"}
+              {isLogin ? t("auth.register") : t("auth.signIn")}
             </span>
           </button>
         </div>

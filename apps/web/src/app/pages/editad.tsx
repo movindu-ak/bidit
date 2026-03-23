@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { MOCK_VEHICLES } from "../data";
 
 export function EditAd() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const vehicle = MOCK_VEHICLES.find(v => v.id === id);
@@ -20,16 +22,16 @@ export function EditAd() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, this would update the vehicle data
-    alert("Ad updated successfully!");
+    alert(t("editAd.updated"));
     navigate("/my-ads");
   };
 
   if (!vehicle) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Vehicle not found</p>
+        <p className="text-gray-600">{t("editAd.vehicleNotFound")}</p>
         <Link to="/my-ads" className="text-[#00a8e8] hover:underline mt-4 inline-block">
-          Back to My Ads
+          {t("editAd.backToMyAds")}
         </Link>
       </div>
     );
@@ -39,18 +41,18 @@ export function EditAd() {
     <div className="space-y-6">
       {/* Breadcrumb */}
       <div className="text-sm text-gray-600">
-        <Link to="/" className="text-[#00a8e8] hover:underline">Home</Link> / 
-        <Link to="/my-ads" className="text-[#00a8e8] hover:underline"> My Ads</Link> / 
-        <span> Edit Ad</span>
+        <Link to="/" className="text-[#00a8e8] hover:underline">{t("nav.home")}</Link> / 
+        <Link to="/my-ads" className="text-[#00a8e8] hover:underline"> {t("myAds.title")}</Link> / 
+        <span> {t("editAd.title")}</span>
       </div>
 
-      <h1 className="text-2xl font-bold">Edit Advertisement</h1>
+      <h1 className="text-2xl font-bold">{t("editAd.title")}</h1>
 
       <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-lg p-6 max-w-3xl">
         <div className="space-y-6">
           {/* Vehicle Image */}
           <div>
-            <label className="block text-sm mb-2">Current Image</label>
+            <label className="block text-sm mb-2">{t("editAd.currentImage")}</label>
             <img 
               src={vehicle.image} 
               alt={`${vehicle.make} ${vehicle.model}`}
@@ -60,7 +62,7 @@ export function EditAd() {
 
           {/* Make */}
           <div>
-            <label className="block text-sm mb-2">Make</label>
+            <label className="block text-sm mb-2">{t("editAd.make")}</label>
             <input
               type="text"
               value={formData.make}
@@ -72,7 +74,7 @@ export function EditAd() {
 
           {/* Model */}
           <div>
-            <label className="block text-sm mb-2">Model</label>
+            <label className="block text-sm mb-2">{t("editAd.model")}</label>
             <input
               type="text"
               value={formData.model}
@@ -84,7 +86,7 @@ export function EditAd() {
 
           {/* Year */}
           <div>
-            <label className="block text-sm mb-2">Year</label>
+            <label className="block text-sm mb-2">{t("editAd.year")}</label>
             <input
               type="number"
               value={formData.year}
@@ -96,7 +98,7 @@ export function EditAd() {
 
           {/* Price */}
           <div>
-            <label className="block text-sm mb-2">Current Bid Price (Rs.)</label>
+            <label className="block text-sm mb-2">{t("editAd.currentBidPrice")}</label>
             <input
               type="number"
               value={formData.price}
@@ -108,7 +110,7 @@ export function EditAd() {
 
           {/* Location */}
           <div>
-            <label className="block text-sm mb-2">Location</label>
+            <label className="block text-sm mb-2">{t("common.location")}</label>
             <input
               type="text"
               value={formData.location}
@@ -120,7 +122,7 @@ export function EditAd() {
 
           {/* Mileage */}
           <div>
-            <label className="block text-sm mb-2">Mileage</label>
+            <label className="block text-sm mb-2">{t("common.mileage")}</label>
             <input
               type="text"
               value={formData.mileage}
@@ -132,7 +134,7 @@ export function EditAd() {
 
           {/* Condition */}
           <div>
-            <label className="block text-sm mb-2">Condition</label>
+            <label className="block text-sm mb-2">{t("common.condition")}</label>
             <select
               value={formData.condition}
               onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
@@ -152,13 +154,13 @@ export function EditAd() {
               type="submit"
               className="px-6 py-2 bg-[#5cb85c] hover:bg-[#4cae4c] text-white rounded transition-colors"
             >
-              Update Ad
+              {t("editAd.updateAd")}
             </button>
             <Link
               to="/my-ads"
               className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded transition-colors inline-block"
             >
-              Cancel
+              {t("editAd.cancel")}
             </Link>
           </div>
         </div>

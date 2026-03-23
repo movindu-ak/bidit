@@ -4,6 +4,7 @@ import { Clock, MapPin } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
 import { bidsAPI } from "../../services/api";
+import { useTranslation } from "react-i18next";
 
 type MyBid = {
   id: string;
@@ -22,6 +23,7 @@ type MyBid = {
 };
 
 export function MyBids() {
+  const { t } = useTranslation();
   const [myBids, setMyBids] = useState<MyBid[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -58,7 +60,7 @@ export function MyBids() {
 
   const formatBidDate = (date: string) => {
     const parsed = new Date(date);
-    if (Number.isNaN(parsed.getTime())) return "recently";
+    if (Number.isNaN(parsed.getTime())) return t("myBids.recently");
     return parsed.toLocaleDateString("en-CA");
   };
 
@@ -67,25 +69,25 @@ export function MyBids() {
       {/* Breadcrumb */}
       <div className="text-sm text-gray-600">
         <Link to="/" className="text-[#00a8e8] hover:underline">Home</Link> / 
-        <span> My Bids</span>
+        <span> {t("myBids.title")}</span>
       </div>
 
-      <h1 className="text-2xl font-bold">My Bids</h1>
+      <h1 className="text-2xl font-bold">{t("myBids.title")}</h1>
 
       {loading && (
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-600">
-          Loading your bids...
+          {t("myBids.loading")}
         </div>
       )}
 
       {!loading && !isAuthenticated && (
         <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-          <p className="text-gray-500 mb-4">Please log in to view your bids</p>
+          <p className="text-gray-500 mb-4">{t("myBids.loginPrompt")}</p>
           <Link
             to="/auth"
             className="inline-block px-6 py-2 bg-[#00a8e8] hover:bg-[#0096d1] text-white rounded transition-colors"
           >
-            Login
+            {t("header.login")}
           </Link>
         </div>
       )}
@@ -131,21 +133,21 @@ export function MyBids() {
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4" />
-                    <span>{v.vehicle?.location || "Location not set"}</span>
+                    <span>{v.vehicle?.location || t("myBids.locationNotSet")}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    <span>Bid placed on {formatBidDate(v.date)}</span>
+                    <span>{t("myBids.bidPlacedOn")} {formatBidDate(v.date)}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-500">Your Bid</p>
+                    <p className="text-gray-500">{t("myBids.yourBid")}</p>
                     <p className="font-bold text-gray-900">Rs. {v.myBid.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Current Price</p>
+                    <p className="text-gray-500">{t("myBids.currentPrice")}</p>
                     <p className={`font-bold ${v.status === "Outbid" ? "text-red-600" : "text-green-600"}`}>
                       Rs. {v.currentPrice.toLocaleString()}
                     </p>
@@ -159,7 +161,7 @@ export function MyBids() {
                   to={`/vehicle/${v.vehicleId}`}
                   className="px-4 py-2 bg-[#00a8e8] hover:bg-[#0096d1] text-white rounded text-sm transition-colors"
                 >
-                  View Details
+                  {t("common.viewDetails")}
                 </Link>
               </div>
             </div>
@@ -172,12 +174,12 @@ export function MyBids() {
 
       {!loading && isAuthenticated && myBids.length === 0 && (
         <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-          <p className="text-gray-500 mb-4">You haven't placed any bids yet</p>
+          <p className="text-gray-500 mb-4">{t("myBids.noBids")}</p>
           <Link 
             to="/"
             className="inline-block px-6 py-2 bg-[#00a8e8] hover:bg-[#0096d1] text-white rounded transition-colors"
           >
-            Browse Vehicles
+            {t("myBids.browse")}
           </Link>
         </div>
       )}

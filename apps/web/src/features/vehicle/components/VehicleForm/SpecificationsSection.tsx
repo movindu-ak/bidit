@@ -1,5 +1,6 @@
 import { TileGroup } from "./TileGroup";
 import { ConditionSlider } from "./ConditionSlider";
+import { useTranslation } from "react-i18next";
 import {
   FUEL_OPTIONS,
   TRANSMISSION_OPTIONS,
@@ -25,12 +26,13 @@ export function SpecificationsSection({
   onTileChange,
   onSliderChange,
 }: SpecificationsSectionProps) {
+  const { t } = useTranslation();
   return (
     <>
       {/* ── Fuel Type ── */}
       <div className="space-y-4 pt-2 border-t border-gray-200">
         <TileGroup
-          label="Fuel Type"
+          label={t("vehicleForm.fuelType")}
           value={vehicle.fuel}
           onChange={(v) => onTileChange("fuel", v)}
           options={FUEL_OPTIONS}
@@ -40,7 +42,7 @@ export function SpecificationsSection({
       {/* ── Transmission Type ── */}
       <div className="space-y-4 pt-2 border-t border-gray-200">
         <TileGroup
-          label="Transmission Type"
+          label={t("vehicleForm.transmissionType")}
           value={vehicle.transmission}
           onChange={(v) => onTileChange("transmission", v)}
           options={TRANSMISSION_OPTIONS}
@@ -49,7 +51,7 @@ export function SpecificationsSection({
 
       {/* ── Vehicle Condition sliders ── */}
       <div className="space-y-4 pt-2 border-t border-gray-200">
-        <h3 className="font-bold text-gray-900 text-base">Vehicle Condition</h3>
+        <h3 className="font-bold text-gray-900 text-base">{t("vehicleForm.vehicleCondition")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {CONDITION_SLIDERS.map((slider) => (
             <ConditionSlider
@@ -68,9 +70,9 @@ export function SpecificationsSection({
 
       {/* ── Primary Vehicle Usage ── */}
       <div className="space-y-4 pt-2 border-t border-gray-200">
-        <h3 className="font-bold text-gray-900 text-base">Primary Vehicle Usage</h3>
+        <h3 className="font-bold text-gray-900 text-base">{t("vehicleForm.primaryVehicleUsage")}</h3>
         <TileGroup
-          label="What is this vehicle mainly used for?"
+          label={t("vehicleForm.primaryUsageQuestion")}
           value={vehicle.primaryUsage as "Personal" | "Commute" | "Business" | "Off-Road" | "Rental"}
           onChange={(v) => onTileChange("primaryUsage", v)}
           options={USAGE_OPTIONS}

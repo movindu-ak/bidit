@@ -1,6 +1,9 @@
 {
   "dependencies": {
     "firebase": "^12.10.0",
-    "mongodb": "^7.1.0"
+    "i18next": "^25.10.4",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "mongodb": "^7.1.0",
+    "react-i18next": "^16.6.1"
   }
 }

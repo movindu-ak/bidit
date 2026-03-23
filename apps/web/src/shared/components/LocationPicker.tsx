@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface LocationPickerProps {
   value: string;
@@ -10,6 +11,7 @@ interface LocationPickerProps {
 }
 
 export function LocationPicker({ value, onLocationSelect }: LocationPickerProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [coordinates, setCoordinates] = useState<{
@@ -19,7 +21,7 @@ export function LocationPicker({ value, onLocationSelect }: LocationPickerProps)
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser");
+      setError(t("locationPicker.geoNotSupported"));
       return;
     }
 
@@ -44,19 +46,19 @@ export function LocationPicker({ value, onLocationSelect }: LocationPickerProps)
             data.address.town ||
             data.address.village ||
             data.address.county ||
-            "Unknown Location";
+            t("locationPicker.unknownLocation");
           const formattedAddress = `${cityName}, ${data.address.country || ""}`;
 
           onLocationSelect({ address: formattedAddress, lat, lng });
         } catch {
-          setError("Could not fetch address. Please enter manually.");
+          setError(t("locationPicker.fetchAddressFailed"));
         } finally {
           setLoading(false);
         }
       },
       (err) => {
         setLoading(false);
-        setError("Unable to retrieve your location. Please enter manually.");
+        setError(t("locationPicker.retrieveFailed"));
         console.error(err);
       }
     );
@@ -78,7 +80,7 @@ export function LocationPicker({ value, onLocationSelect }: LocationPickerProps)
           value={value}
           onChange={(e) => handleAddressChange(e.target.value)}
           required
-          placeholder="e.g. Colombo, Sri Lanka"
+          placeholder={t("locationPicker.placeholder")}
           className="flex-1 border border-gray-300 rounded px-4 py-2 text-sm focus:outline-none focus:border-[#00a8e8]"
         />
         <button
@@ -90,7 +92,7 @@ export function LocationPicker({ value, onLocationSelect }: LocationPickerProps)
           {loading ? (
             <>
               <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-              <span>Getting...</span>
+              <span>{t("locationPicker.getting")}</span>
             </>
           ) : (
             <>
@@ -113,7 +115,7 @@ export function LocationPicker({ value, onLocationSelect }: LocationPickerProps)
                   d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-              <span>Use My Location</span>
+              <span>{t("locationPicker.useMyLocation")}</span>
             </>
           )}
         </button>

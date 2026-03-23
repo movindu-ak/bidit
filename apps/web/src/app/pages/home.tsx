@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import { Heart, MapPin } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { auth } from "../../firebase/firebase";
 import { favoritesAPI, vehiclesAPI } from "../../services/api";
 
@@ -150,6 +151,7 @@ const toSafeNumber = (value: unknown, fallback = 0) => {
 };
 
 export function Home() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -281,13 +283,13 @@ export function Home() {
     <div className="space-y-6">
       {/* Breadcrumb */}
       <div className="text-sm text-gray-600">
-        <Link to="/" className="text-[#00a8e8] hover:underline">Home</Link> / 
-        <Link to="/" className="text-[#00a8e8] hover:underline"> All Ads</Link> / 
-        <span> Car</span>
+        <Link to="/" className="text-[#00a8e8] hover:underline">{t("home.title")}</Link> / 
+        <Link to="/" className="text-[#00a8e8] hover:underline"> {t("home.allAds")}</Link>
       </div>
 
       {/* Title */}
-      <h1 className="text-2xl font-bold">Cars for sale in Sri Lanka</h1>
+      <h1 className="text-2xl font-bold">{t("home.title")}</h1>
+      <p className="text-sm text-gray-600 -mt-4">{t("home.subtitle")}</p>
 
       {/* Search Filters */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -297,7 +299,7 @@ export function Home() {
             onChange={(e) => setSelectedMake(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded bg-white text-sm"
           >
-            <option>Any Make</option>
+            <option>{t("home.anyMake")}</option>
             <option>Porsche</option>
             <option>BMW</option>
             <option>Mercedes-Benz</option>
@@ -305,7 +307,7 @@ export function Home() {
           
           <input 
             type="text"
-            placeholder="Model"
+            placeholder={t("home.model")}
             className="px-4 py-2 border border-gray-300 rounded text-sm"
           />
           
@@ -314,7 +316,7 @@ export function Home() {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded bg-white text-sm"
           >
-            <option>Any Category</option>
+            <option>{t("home.anyCategory")}</option>
             {CATEGORY_OPTIONS.map((category) => (
               <option key={category} value={category}>
                 {category}
@@ -327,7 +329,7 @@ export function Home() {
             onChange={(e) => setSelectedCondition(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded bg-white text-sm"
           >
-            <option>Any Condition</option>
+            <option>{t("home.anyCondition")}</option>
             <option>New</option>
             <option>Excellent</option>
             <option>Good</option>
@@ -335,20 +337,20 @@ export function Home() {
 
           <input 
             type="text"
-            placeholder="Min Price"
+            placeholder={t("home.minPrice")}
             className="px-4 py-2 border border-gray-300 rounded text-sm"
           />
 
           <input 
             type="text"
-            placeholder="Max Price"
+            placeholder={t("home.maxPrice")}
             className="px-4 py-2 border border-gray-300 rounded text-sm"
           />
         </div>
         
         <div className="mt-4 flex justify-center">
           <button className="bg-[#5cb85c] hover:bg-[#4cae4c] text-white px-12 py-2 rounded text-sm transition-colors">
-            Search
+            {t("home.search")}
           </button>
         </div>
       </div>
@@ -356,7 +358,7 @@ export function Home() {
       {/* Loading State */}
       {loading && (
         <div className="text-center py-12">
-          <p className="text-gray-600">Loading vehicles...</p>
+          <p className="text-gray-600">{t("home.loading")}</p>
         </div>
       )}
 
@@ -364,7 +366,7 @@ export function Home() {
       {!loading && (
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-700">
-          Displaying <strong>{totalResults === 0 ? 0 : startIndex + 1} - {endIndex}</strong> of <strong>{totalResults}</strong> Search Results
+          {t("home.displaying")} <strong>{totalResults === 0 ? 0 : startIndex + 1} - {endIndex}</strong> of <strong>{totalResults}</strong> {t("home.results")}
         </p>
         
         <div className="flex gap-1">
@@ -386,7 +388,7 @@ export function Home() {
             disabled={safeCurrentPage === totalPages}
             className="px-3 h-8 flex items-center justify-center border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Next
+            {t("home.next")}
           </button>
         </div>
       </div>
@@ -427,7 +429,7 @@ export function Home() {
             disabled={safeCurrentPage === totalPages}
             className="px-3 h-8 flex items-center justify-center border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Next
+            {t("home.next")}
           </button>
         </div>
       </div>
@@ -446,6 +448,7 @@ function VehicleCard({
   isFavourite: boolean;
   onToggleFavourite: (vehicleId: string) => void;
 }) {
+  const { t } = useTranslation();
   const safeStartingBid = toSafeNumber(vehicle.startingBid);
   const safeBasePrice = toSafeNumber(vehicle.basePrice, safeStartingBid);
   const safeCurrentPrice = toSafeNumber(vehicle.currentPrice, safeStartingBid || safeBasePrice);
@@ -495,18 +498,25 @@ function VehicleCard({
 
           {/* Content on right */}
           <div className="flex-1 space-y-2">
-            <p className="text-sm text-gray-600">{vehicle.location}</p>
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">{t("common.location")}: </span>
+              {vehicle.location}
+            </p>
+            <p className="text-xs text-gray-500">
+              <span className="font-medium">{t("common.year")}: </span>
+              {vehicle.year}
+            </p>
             <div className="space-y-1">
               <div>
-                <p className="text-xs uppercase tracking-wide text-gray-400">Base Price</p>
+                <p className="text-xs uppercase tracking-wide text-gray-400">{t("common.price")}</p>
                 <p className="text-sm font-semibold text-gray-700">Rs. {basePriceLKR}</p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-gray-400">Current Bid</p>
+                <p className="text-xs uppercase tracking-wide text-gray-400">{t("common.startingBid")}</p>
                 <p className="text-xl font-bold text-green-700">Rs. {currentPriceLKR}</p>
               </div>
             </div>
-            <p className="text-sm text-gray-600">{vehicle.bidsCount} bids</p>
+            <p className="text-sm text-gray-600">{vehicle.bidsCount} {t("common.bids")}</p>
           </div>
         </div>
         

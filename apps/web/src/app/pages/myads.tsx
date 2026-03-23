@@ -4,6 +4,7 @@ import { Clock, Trash2, Edit2, MapPin } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
 import { vehiclesAPI } from "../../services/api";
+import { useTranslation } from "react-i18next";
 
 type MyVehicle = {
   id: string;
@@ -27,6 +28,7 @@ type MyVehicle = {
 };
 
 export function MyAds() {
+  const { t } = useTranslation();
   const [myVehicles, setMyVehicles] = useState<MyVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -68,16 +70,16 @@ export function MyAds() {
       const now = Date.now();
       const diff = end - now;
 
-      if (Number.isNaN(end) || diff <= 0) return "Auction ended";
+      if (Number.isNaN(end) || diff <= 0) return t("myAds.auctionEnded");
 
       const totalHours = Math.floor(diff / (1000 * 60 * 60));
       const days = Math.floor(totalHours / 24);
       const hours = totalHours % 24;
 
-      if (days <= 0) return `${hours}h left`;
-      return `${days}d ${hours}h left`;
+      if (days <= 0) return `${hours}h ${t("myAds.left")}`;
+      return `${days}d ${hours}h ${t("myAds.left")}`;
     },
-    []
+    [t]
   );
 
   return (
@@ -85,33 +87,33 @@ export function MyAds() {
       {/* Breadcrumb */}
       <div className="text-sm text-gray-600">
         <Link to="/" className="text-[#00a8e8] hover:underline">Home</Link> / 
-        <span> My Ads</span>
+        <span> {t("myAds.title")}</span>
       </div>
 
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">My Advertisements</h1>
+        <h1 className="text-2xl font-bold">{t("myAds.title")}</h1>
         <Link 
           to="/add-vehicle" 
           className="px-4 py-2 bg-[#ff6b35] hover:bg-[#ff5722] text-white rounded text-sm transition-colors"
         >
-          + Post New Ad
+          {t("myAds.postNew")}
         </Link>
       </div>
 
       {loading && (
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-600">
-          Loading your listings...
+          {t("myAds.loading")}
         </div>
       )}
 
       {!loading && !isAuthenticated && (
         <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-          <p className="text-gray-500 mb-4">Please log in to view your ads</p>
+          <p className="text-gray-500 mb-4">{t("myAds.loginPrompt")}</p>
           <Link
             to="/auth"
             className="inline-block px-6 py-2 bg-[#00a8e8] hover:bg-[#0096d1] text-white rounded transition-colors"
           >
-            Login
+            {t("header.login")}
           </Link>
         </div>
       )}
@@ -150,7 +152,7 @@ export function MyAds() {
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4" />
-                    <span>{v.location || "Location not set"}</span>
+                    <span>{v.location || t("myAds.locationNotSet")}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4 text-red-500" />
@@ -158,16 +160,16 @@ export function MyAds() {
                   </div>
                 </div>
                 <p className="text-lg font-bold text-green-700 mb-1">
-                  Current Bid: Rs. {(v.currentPrice ?? v.startingBid ?? 0).toLocaleString()}
+                  {t("common.currentBid")}: Rs. {(v.currentPrice ?? v.startingBid ?? 0).toLocaleString()}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {(v.bidsCount ?? 0)} bids {v.condition ? `• ${v.condition}` : ""}
+                  {(v.bidsCount ?? 0)} {t("common.bids")} {v.condition ? `• ${v.condition}` : ""}
                 </p>
                 <Link
                   to={`/vehicle/${v.id}`}
                   className="inline-block mt-3 text-sm text-[#00a8e8] hover:underline"
                 >
-                  View Details
+                  {t("common.viewDetails")}
                 </Link>
 
                 {(() => {
@@ -178,7 +180,7 @@ export function MyAds() {
 
                   return (
                     <div className="mt-4 border border-gray-200 rounded-lg p-3 bg-gray-50">
-                      <p className="text-sm font-semibold text-gray-800 mb-2">Bidders (Auction Ended)</p>
+                      <p className="text-sm font-semibold text-gray-800 mb-2">{t("myAds.biddersEnded")}</p>
 
                       {v.bids && v.bids.length > 0 ? (
                         <div className="space-y-2">
@@ -196,7 +198,7 @@ export function MyAds() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-gray-500">No bids were placed for this vehicle.</p>
+                        <p className="text-xs text-gray-500">{t("myAds.noBids")}</p>
                       )}
                     </div>
                   );
@@ -225,12 +227,12 @@ export function MyAds() {
 
       {!loading && isAuthenticated && myVehicles.length === 0 && (
         <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-          <p className="text-gray-500 mb-4">You don't have any active listings</p>
+          <p className="text-gray-500 mb-4">{t("myAds.noActive")}</p>
           <Link 
             to="/add-vehicle"
             className="inline-block px-6 py-2 bg-[#00a8e8] hover:bg-[#0096d1] text-white rounded transition-colors"
           >
-            Post Your First Ad
+            {t("myAds.postFirst")}
           </Link>
         </div>
       )}

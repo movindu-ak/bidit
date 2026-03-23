@@ -1,5 +1,6 @@
 import React from "react";
 import { Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { InputField } from "../inputs/InputField";
 import { BIDDING_DAYS } from "./vehicleFormConfig";
 import type { VehicleFormData, VehicleFormErrors } from "./types";
@@ -33,19 +34,20 @@ export function PricingSection({
   pricingSuggestion,
   onAcceptSuggestion,
 }: PricingSectionProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4 pt-2 border-t border-gray-200">
-      <h3 className="font-bold text-gray-900 text-base">Pricing</h3>
+      <h3 className="font-bold text-gray-900 text-base">{t("vehicleForm.pricing")}</h3>
 
       {/* Base Price */}
       <div>
         <InputField
-          label="Base Price (Rs.)"
+          label={t("vehicleForm.basePrice")}
           name="basePrice"
           value={vehicle.basePrice}
           onChange={onChange}
           type="number"
-          placeholder="e.g., 2500000"
+          placeholder={t("vehicleForm.basePricePlaceholder")}
           required
         />
         {errors.basePrice && (
@@ -59,7 +61,7 @@ export function PricingSection({
           <Sparkles className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-blue-800">
-              Suggested Starting Bid:{" "}
+              {t("vehicleForm.suggestedStartingBid")} {" "}
               <span className="text-blue-900">
                 Rs. {pricingSuggestion.suggestedStartingBid.toLocaleString()}
               </span>
@@ -71,7 +73,7 @@ export function PricingSection({
             onClick={onAcceptSuggestion}
             className="text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 px-3 py-1.5 rounded-lg transition-colors"
           >
-            Accept
+            {t("vehicleForm.accept")}
           </button>
         </div>
       )}
@@ -79,16 +81,16 @@ export function PricingSection({
       {/* Starting Bid (overridable) */}
       <div>
         <InputField
-          label="Starting Bid (Rs.)"
+          label={t("vehicleForm.startingBid")}
           name="startingBid"
           value={vehicle.startingBid}
           onChange={onChange}
           type="number"
-          placeholder="Auto-filled or enter manually"
+          placeholder={t("vehicleForm.startingBidPlaceholder")}
           required
         />
         <p className="text-xs text-gray-400 mt-1">
-          This is the minimum opening bid. Accept the suggestion above or set your own.
+          {t("vehicleForm.startingBidHelp")}
         </p>
         {errors.startingBid && (
           <p className="text-xs text-red-500 mt-1">{errors.startingBid}</p>
@@ -132,12 +134,10 @@ export function PricingSection({
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-800">
-            Enable Price Negotiation
+            {t("vehicleForm.enableNegotiation")}
           </p>
           <p className="text-xs text-amber-700 mt-1">
-            💡 <strong>Flexible pricing option:</strong> Allow buyers to negotiate
-            directly with you for potential deals outside the bidding system. This
-            can attract more serious buyers.
+            {t("vehicleForm.negotiationHelp")}
           </p>
         </div>
       </label>
@@ -145,7 +145,7 @@ export function PricingSection({
       {/* Show only when negotiation is enabled */}
       {vehicle.negotiationEnabled && (
         <div className="space-y-3">
-          <p className="text-sm font-semibold text-gray-800">Bidding Duration</p>
+          <p className="text-sm font-semibold text-gray-800">{t("vehicleForm.biddingDuration")}</p>
           <div className="flex flex-wrap gap-3">
             {BIDDING_DAYS.map((d) => (
               <button
@@ -159,12 +159,12 @@ export function PricingSection({
                 }`}
               >
                 <span className="text-lg leading-none">{d}</span>
-                <span className="text-xs font-normal">{d === 1 ? "day" : "days"}</span>
+                <span className="text-xs font-normal">{d === 1 ? t("vehicleForm.day") : t("vehicleForm.days")}</span>
               </button>
             ))}
           </div>
           <p className="text-xs text-gray-400">
-            Select how many days the bidding will remain active (max 7 days)
+            {t("vehicleForm.biddingDurationHelp")}
           </p>
         </div>
       )}

@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { auth } from "../../firebase/firebase";
 import { authAPI, bidsAPI } from "../../services/api";
 
@@ -122,6 +123,7 @@ function EditableRow({
 
 // ── Main component ────────────────────────────────────────────
 export function MyProfile() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
@@ -191,7 +193,7 @@ export function MyProfile() {
   // ── Save username ───────────────────────────────────────────
   const handleSaveUsername = async () => {
     if (!editUsername.trim()) {
-      toast.error("Username cannot be empty");
+      toast.error(t("profile.toast.usernameEmpty"));
       return;
     }
     setSaving(true);
@@ -199,9 +201,9 @@ export function MyProfile() {
       if (user) await firebaseUpdateProfile(user, { displayName: editUsername.trim() });
       setUsername(editUsername.trim());
       setEditingUsername(false);
-      toast.success("Username updated");
+      toast.success(t("profile.toast.usernameUpdated"));
     } catch {
-      toast.error("Failed to update username");
+      toast.error(t("profile.toast.usernameUpdateFailed"));
     } finally {
       setSaving(false);
     }
@@ -228,9 +230,9 @@ export function MyProfile() {
       }
       setPhone(editPhone.trim());
       setEditingPhone(false);
-      toast.success("Phone number updated");
+      toast.success(t("profile.toast.phoneUpdated"));
     } catch {
-      toast.error("Failed to update phone number");
+      toast.error(t("profile.toast.phoneUpdateFailed"));
     } finally {
       setSaving(false);
     }
@@ -259,12 +261,12 @@ export function MyProfile() {
     return (
       <div className="max-w-lg mx-auto text-center py-20 space-y-4">
         <UserIcon className="h-16 w-16 text-gray-300 mx-auto" />
-        <p className="text-gray-600">Please log in to view your profile.</p>
+        <p className="text-gray-600">{t("profile.loginPrompt")}</p>
         <Link
           to="/auth"
           className="inline-block bg-[#00a8e8] text-white px-6 py-2 rounded hover:bg-[#008ec5] transition-colors text-sm"
         >
-          Login
+          {t("header.login")}
         </Link>
       </div>
     );
@@ -275,9 +277,9 @@ export function MyProfile() {
       {/* Breadcrumb */}
       <div className="text-sm text-gray-600">
         <Link to="/" className="text-[#00a8e8] hover:underline">
-          Home
+          {t("nav.home")}
         </Link>{" "}
-        /<span> My Profile</span>
+        /<span> {t("profile.title")}</span>
       </div>
 
       {/* ── Profile card ── */}
@@ -288,11 +290,11 @@ export function MyProfile() {
             {initials}
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{username || "No name set"}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{username || t("profile.noName")}</h1>
             <p className="text-sm text-gray-500">{user.email}</p>
             {user.metadata.creationTime && (
               <p className="text-xs text-gray-400 mt-0.5">
-                Member since{" "}
+                {t("profile.memberSince")}{" "}
                 {new Date(user.metadata.creationTime).toLocaleDateString("en-US", {
                   month: "long",
                   year: "numeric",
@@ -306,7 +308,7 @@ export function MyProfile() {
         <div className="rounded-xl border border-gray-100 overflow-hidden px-4">
           {/* Username */}
           <EditableRow
-            label="Username"
+            label={t("profile.username")}
             value={username}
             icon={<UserIcon className="h-4 w-4" />}
             editing={editingUsername}
@@ -318,7 +320,7 @@ export function MyProfile() {
             }}
             onSave={handleSaveUsername}
             onCancel={() => setEditingUsername(false)}
-            placeholder="Enter your name"
+            placeholder={t("profile.enterName")}
           />
 
           {/* Email — read-only */}
@@ -328,18 +330,18 @@ export function MyProfile() {
                 <Mail className="h-4 w-4" />
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-400 mb-0.5">Email</p>
+                <p className="text-xs text-gray-400 mb-0.5">{t("auth.email")}</p>
                 <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
               </div>
             </div>
             <span className="ml-3 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full flex-shrink-0">
-              Read-only
+              {t("profile.readOnly")}
             </span>
           </div>
 
           {/* Phone */}
           <EditableRow
-            label="Phone Number"
+            label={t("profile.phone")}
             value={phone}
             icon={<Phone className="h-4 w-4" />}
             editing={editingPhone}
@@ -351,35 +353,35 @@ export function MyProfile() {
             }}
             onSave={handleSavePhone}
             onCancel={() => setEditingPhone(false)}
-            placeholder="+94 77 000 0000"
+            placeholder={t("profile.phonePlaceholder")}
             type="tel"
           />
         </div>
 
         {saving && (
-          <p className="text-xs text-gray-400 text-center mt-3">Saving…</p>
+          <p className="text-xs text-gray-400 text-center mt-3">{t("profile.saving")}</p>
         )}
       </div>
 
       {/* ── Stats ── */}
       <div>
-        <h2 className="text-base font-bold text-gray-800 mb-3">Activity Overview</h2>
+        <h2 className="text-base font-bold text-gray-800 mb-3">{t("profile.activityOverview")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard
             icon={<Gavel className="h-5 w-5 text-[#00a8e8]" />}
-            label="Total Bids"
+            label={t("profile.totalBids")}
             value={totalBids}
             color="bg-blue-50"
           />
           <StatCard
             icon={<Heart className="h-5 w-5 text-rose-500" />}
-            label="Favourites"
+            label={t("profile.favourites")}
             value={favourites}
             color="bg-rose-50"
           />
           <StatCard
             icon={<Wallet className="h-5 w-5 text-emerald-600" />}
-            label="Wallet Balance"
+            label={t("profile.walletBalance")}
             value={`Rs. ${walletBalance.toLocaleString()}`}
             color="bg-emerald-50"
           />

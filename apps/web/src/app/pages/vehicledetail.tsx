@@ -26,8 +26,10 @@ import { vehiclesAPI, bidsAPI, favoritesAPI } from "../../services/api";
 import { toast } from "sonner";
 import { auth } from "../../firebase/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { useTranslation } from "react-i18next";
 
 export function VehicleDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +130,7 @@ export function VehicleDetail() {
       setBidAmount(String((fetchedVehicle?.currentPrice ?? fetchedVehicle?.startingBid ?? 0) + 5000));
     } catch (error) {
       console.error("Failed to load vehicle:", error);
-      toast.error("Failed to load vehicle");
+      toast.error(t("vehicleDetail.toast.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -137,7 +139,7 @@ export function VehicleDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-gray-600">Loading...</p>
+        <p className="text-gray-600">{t("vehicleDetail.loading")}</p>
       </div>
     );
   }
@@ -145,8 +147,8 @@ export function VehicleDetail() {
   if (!vehicle) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <h2 className="text-2xl font-bold">Vehicle not found</h2>
-        <Link to="/" className="text-[#00a8e8] mt-4 hover:underline">Return to Home</Link>
+        <h2 className="text-2xl font-bold">{t("vehicleDetail.notFound")}</h2>
+        <Link to="/" className="text-[#00a8e8] mt-4 hover:underline">{t("vehicleDetail.returnHome")}</Link>
       </div>
     );
   }
@@ -158,7 +160,7 @@ export function VehicleDetail() {
       : ["https://placehold.co/1200x800?text=No+Image"];
   const activeImageIndex = Math.min(selectedImageIndex, vehicleImages.length - 1);
   const primaryImage = vehicleImages[activeImageIndex];
-  const sellerName = vehicle.seller?.name || "Verified Seller";
+  const sellerName = vehicle.seller?.name || t("vehicleDetail.verifiedSeller");
   const sellerTopic = `${vehicle.make ?? ""} ${vehicle.model ?? ""}`.trim();
   const sellerTopicLower = sellerTopic.toLowerCase();
   const yearText = String(vehicle.year ?? "").trim();
@@ -170,13 +172,20 @@ export function VehicleDetail() {
   const isOwnerViewing = !!firebaseUser && vehicle.ownerId === firebaseUser.uid;
   const vehicleDescription =
     vehicle.description ||
-    `This ${vehicle.year} ${vehicle.make} ${vehicle.model} is in ${String(vehicle.condition || "good").toLowerCase()} condition. Equipped with a ${vehicle.specs?.engine || "well-maintained"} engine and ${String(vehicle.specs?.transmission || "reliable").toLowerCase()} transmission.`;
+    t("vehicleDetail.defaultDescription", {
+      year: vehicle.year,
+      make: vehicle.make,
+      model: vehicle.model,
+      condition: String(vehicle.condition || "good").toLowerCase(),
+      engine: vehicle.specs?.engine || t("vehicleDetail.wellMaintained"),
+      transmission: String(vehicle.specs?.transmission || t("vehicleDetail.reliable")).toLowerCase(),
+    });
   const endingDate = vehicle.endingAt ? new Date(vehicle.endingAt).getTime() : null;
   const isAuctionEnded = !!endingDate && !Number.isNaN(endingDate) && endingDate <= Date.now();
   const timeLeftText = (() => {
-    if (!endingDate || Number.isNaN(endingDate)) return "Auction end date unavailable";
+    if (!endingDate || Number.isNaN(endingDate)) return t("vehicleDetail.auctionDateUnavailable");
     const diff = endingDate - Date.now();
-    if (diff <= 0) return "Auction ended";
+    if (diff <= 0) return t("vehicleDetail.auctionEnded");
     const totalMinutes = Math.floor(diff / (1000 * 60));
     const days = Math.floor(totalMinutes / (60 * 24));
     const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
@@ -192,28 +201,28 @@ export function VehicleDetail() {
     const numericBidAmount = Number(bidAmount);
     
     if (!firebaseUser) {
-      toast.error("Please login to place a bid");
+      toast.error(t("vehicleDetail.toast.loginToBid"));
       return;
     }
 
     if (vehicle.ownerId && vehicle.ownerId === firebaseUser.uid) {
-      toast.error("You cannot bid on your own vehicle");
+      toast.error(t("vehicleDetail.toast.ownVehicleBid"));
       return;
     }
 
     if (isAuctionEnded) {
-      toast.error("Bidding has ended for this vehicle");
+      toast.error(t("vehicleDetail.toast.biddingEnded"));
       return;
     }
     
     if (!numericBidAmount || numericBidAmount <= currentPrice) {
-      toast.error("Bid must be higher than current price");
+      toast.error(t("vehicleDetail.toast.bidHigher"));
       return;
     }
 
     const increment = numericBidAmount - currentPrice;
     if (increment % 5000 !== 0) {
-      toast.error("Bid increase must be in Rs. 5,000 increments");
+      toast.error(t("vehicleDetail.toast.increment5000"));
       return;
     }
 
@@ -229,18 +238,18 @@ export function VehicleDetail() {
       if (response.error) {
         toast.error(response.error);
       } else {
-        toast.success("Bid placed successfully!");
+        toast.success(t("vehicleDetail.toast.bidPlaced"));
         setIsBidModalOpen(false);
         loadVehicle(); // Reload to get updated data
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to place bid");
+      toast.error(error.message || t("vehicleDetail.toast.bidFailed"));
     }
   };
 
   const openBidModal = () => {
     if (isAuctionEnded) {
-      toast.error("Bidding has ended for this vehicle");
+      toast.error(t("vehicleDetail.toast.biddingEnded"));
       return;
     }
     setBidAmount(String(currentPrice + 5000));
@@ -252,12 +261,12 @@ export function VehicleDetail() {
     const increment = Number(customIncrement);
 
     if (!increment || increment <= 0) {
-      toast.error("Enter a valid custom increment");
+      toast.error(t("vehicleDetail.toast.validIncrement"));
       return;
     }
 
     if (increment % 5000 !== 0) {
-      toast.error("Custom increment must be in Rs. 5,000 increments");
+      toast.error(t("vehicleDetail.toast.customIncrement5000"));
       return;
     }
 
@@ -319,7 +328,7 @@ export function VehicleDetail() {
     const user = auth.currentUser;
 
     if (!user) {
-      toast.error("Please sign in to save favorites");
+      toast.error(t("vehicleDetail.toast.signInFavorites"));
       return;
     }
 
@@ -336,9 +345,9 @@ export function VehicleDetail() {
       const ids = Array.isArray(response?.favorites) ? response.favorites : [];
       const nowFavourite = ids.includes(String(vehicle.id));
       setIsFavourite(nowFavourite);
-      toast.success(nowFavourite ? "Added to favourites" : "Removed from favourites");
+      toast.success(nowFavourite ? t("vehicleDetail.toast.addedFavourites") : t("vehicleDetail.toast.removedFavourites"));
     } catch {
-      toast.error("Failed to update favourites");
+      toast.error(t("vehicleDetail.toast.updateFavouritesFailed"));
     }
   };
 
@@ -346,9 +355,9 @@ export function VehicleDetail() {
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Breadcrumb */}
       <div className="text-sm text-gray-500">
-        <Link to="/" className="text-[#00a8e8] hover:underline">Home</Link>
+        <Link to="/" className="text-[#00a8e8] hover:underline">{t("nav.home")}</Link>
         {" / "}
-        <Link to="/" className="text-[#00a8e8] hover:underline">All Ads</Link>
+        <Link to="/" className="text-[#00a8e8] hover:underline">{t("home.allAds")}</Link>
         {" / "}
         <span>{vehicle.make} {vehicle.model}</span>
       </div>
@@ -367,7 +376,7 @@ export function VehicleDetail() {
           {vehicleImages.length > 1 && (
             <div className="space-y-2">
               <p className="text-xs text-gray-500 font-medium">
-                {vehicleImages.length} Photos Available
+                {vehicleImages.length} {t("vehicleDetail.photosAvailable")}
               </p>
               <div className="grid grid-cols-5 gap-2">
                 {vehicleImages.map((img, index) => (
@@ -402,14 +411,14 @@ export function VehicleDetail() {
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-2xl font-bold text-gray-900 leading-tight">
               {adTitle}{" "}
-              <span className="text-gray-600 font-medium">{vehicle.condition} Condition</span>
+              <span className="text-gray-600 font-medium">{t("vehicleDetail.conditionWithValue", { condition: vehicle.condition })}</span>
             </h1>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleToggleFavourite}
                 className="flex-shrink-0 p-2 rounded-full border border-gray-200 hover:bg-gray-50"
-                aria-label={isFavourite ? "Remove from favourites" : "Add to favourites"}
+                aria-label={isFavourite ? t("vehicleDetail.removeFromFavourites") : t("vehicleDetail.addToFavourites")}
               >
                 <Heart className={`h-5 w-5 ${isFavourite ? "text-red-500 fill-red-500" : "text-gray-400"}`} />
               </button>
@@ -428,25 +437,25 @@ export function VehicleDetail() {
             <div className="flex items-start gap-2 text-sm">
               <MapPin className="h-4 w-4 mt-0.5 text-[#00a8e8]" />
               <div>
-                <p className="font-semibold text-gray-800">Location</p>
-                <p className="text-gray-700">{vehicle.location || "Location not specified"}</p>
+                <p className="font-semibold text-gray-800">{t("common.location")}</p>
+                <p className="text-gray-700">{vehicle.location || t("vehicleDetail.locationNotSpecified")}</p>
                 {locationCoords && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Coordinates: {locationCoords.lat.toFixed(6)}, {locationCoords.lng.toFixed(6)}
+                    {t("vehicleDetail.coordinates")}: {locationCoords.lat.toFixed(6)}, {locationCoords.lng.toFixed(6)}
                   </p>
                 )}
               </div>
             </div>
 
             {isLocationLoading && (
-              <p className="text-xs text-gray-500">Loading map preview...</p>
+              <p className="text-xs text-gray-500">{t("vehicleDetail.loadingMap")}</p>
             )}
 
             {!isLocationLoading && locationCoords && (
               <>
                 <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                   <iframe
-                    title="Vehicle location map"
+                    title={t("vehicleDetail.locationMap")}
                     src={`https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=${locationCoords.lat},${locationCoords.lng}`}
                     className="w-full h-56"
                     loading="lazy"
@@ -459,7 +468,7 @@ export function VehicleDetail() {
                     rel="noreferrer"
                     className="text-sm text-[#00a8e8] hover:underline"
                   >
-                    View larger map
+                    {t("vehicleDetail.viewLargerMap")}
                   </a>
                 </div>
               </>
@@ -476,7 +485,7 @@ export function VehicleDetail() {
             <div className="flex items-center gap-2 px-4 py-3 bg-sky-50 border border-sky-200 rounded-xl text-sm text-sky-800">
               <MessageCircle className="h-4 w-4 flex-shrink-0 text-sky-500" />
               <span>
-                <strong>Price is negotiable</strong> - Seller is open to reasonable offers
+                <strong>{t("vehicleDetail.priceNegotiable")}</strong> - {t("vehicleDetail.sellerOpenOffers")}
               </span>
             </div>
           )}
@@ -484,25 +493,25 @@ export function VehicleDetail() {
           {/* â”€â”€ 4-stat grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white border border-gray-200 rounded-xl p-3 text-center shadow-sm">
-              <p className="text-xs text-gray-400 mb-1">Base Price</p>
+              <p className="text-xs text-gray-400 mb-1">{t("home.basePrice")}</p>
               <p className="text-sm font-bold text-gray-800">
                 Rs. {basePrice.toLocaleString()}
               </p>
             </div>
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center shadow-sm">
-              <p className="text-xs text-emerald-600 mb-1">Starting Bid</p>
+              <p className="text-xs text-emerald-600 mb-1">{t("common.startingBid")}</p>
               <p className="text-sm font-bold text-emerald-700">
                 Rs. {startingBid.toLocaleString()}
               </p>
             </div>
             <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-center shadow-sm">
-              <p className="text-xs text-indigo-500 mb-1">Current Price</p>
+              <p className="text-xs text-indigo-500 mb-1">{t("myBids.currentPrice")}</p>
               <p className="text-lg font-extrabold text-indigo-700">
                 Rs. {currentPrice.toLocaleString()}
               </p>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl p-3 text-center shadow-sm">
-              <p className="text-xs text-gray-400 mb-1">Total Bids</p>
+              <p className="text-xs text-gray-400 mb-1">{t("profile.totalBids")}</p>
               <p className="text-sm font-bold text-gray-800">
                 {vehicle.bidsCount ?? vehicle.bids?.length ?? 0}
               </p>
@@ -518,13 +527,13 @@ export function VehicleDetail() {
           >
             <Clock className={`h-4 w-4 flex-shrink-0 ${isAuctionEnded ? "text-red-700" : "text-red-500"}`} />
             <span>
-              {isAuctionEnded ? "Auction Ended:" : "Time Remaining:"} <strong>{timeLeftText}</strong>
+              {isAuctionEnded ? `${t("vehicleDetail.auctionEndedLabel")}:` : `${t("vehicleDetail.timeRemaining")}:`} <strong>{timeLeftText}</strong>
             </span>
           </div>
 
           {isAuctionEnded && (
             <div className="px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-semibold">
-              Auction has ended. Buyers can now view bidder names and bid amounts below.
+              {t("vehicleDetail.auctionEndedNotice")}
             </div>
           )}
 
@@ -533,7 +542,7 @@ export function VehicleDetail() {
             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-semibold text-gray-700">Price Progression</span>
+                <span className="text-sm font-semibold text-gray-700">{t("vehicleDetail.priceProgression")}</span>
               </div>
               <ResponsiveContainer width="100%" height={170}>
                 <LineChart data={priceHistory} margin={{ top: 4, right: 8, left: 0, bottom: 24 }}>
@@ -547,7 +556,7 @@ export function VehicleDetail() {
                     tickMargin={8}
                     axisLine={false}
                     tickLine={false}
-                    label={{ value: "Days in Auction", position: "bottom", offset: 8, fill: "#6b7280", fontSize: 11 }}
+                    label={{ value: t("vehicleDetail.daysInAuction"), position: "bottom", offset: 8, fill: "#6b7280", fontSize: 11 }}
                   />
                   <YAxis
                     tickFormatter={formatK}
@@ -556,14 +565,14 @@ export function VehicleDetail() {
                     axisLine={false}
                     tickLine={false}
                     width={56}
-                    label={{ value: "Price (Rs.)", angle: -90, position: "insideLeft", fill: "#6b7280", fontSize: 11 }}
+                    label={{ value: t("vehicleDetail.priceRs"), angle: -90, position: "insideLeft", fill: "#6b7280", fontSize: 11 }}
                   />
                   <Tooltip
                     formatter={(v: number | string | undefined) => [
                       `Rs. ${Number(v ?? 0).toLocaleString()}`,
-                      "Price",
+                      t("common.price"),
                     ]}
-                    labelFormatter={(label) => `Day ${String(label)}`}
+                    labelFormatter={(label) => `${t("vehicleDetail.day")} ${String(label)}`}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                   />
                   <Line
@@ -589,7 +598,7 @@ export function VehicleDetail() {
                 </LineChart>
               </ResponsiveContainer>
               <p className="text-xs text-gray-500 mt-2 text-center">
-                Track how the price has changed throughout the auction period
+                {t("vehicleDetail.trackPriceHelp")}
               </p>
             </div>
           )}
@@ -600,13 +609,13 @@ export function VehicleDetail() {
             disabled={isOwnerViewing || isAuctionEnded}
             className="w-full py-3.5 bg-[#00a8e8] hover:bg-[#0096d1] disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed text-white rounded-xl font-bold text-base transition-colors"
           >
-            {isOwnerViewing ? "Your Own Vehicle" : isAuctionEnded ? "Bidding Closed" : "Place Bid"}
+            {isOwnerViewing ? t("vehicleDetail.yourOwnVehicle") : isAuctionEnded ? t("vehicleDetail.biddingClosed") : t("vehicleDetail.placeBid")}
           </button>
           {(isOwnerViewing || isAuctionEnded) && (
             <p className="text-xs text-amber-700 text-center -mt-2">
               {isOwnerViewing
-                ? "Bidding is disabled for your own listing."
-                : "Bidding is closed because auction duration has ended."}
+                ? t("vehicleDetail.ownListingDisabled")
+                : t("vehicleDetail.biddingClosedReason")}
             </p>
           )}
         </div>
@@ -615,10 +624,10 @@ export function VehicleDetail() {
       {/* â”€â”€ Specs strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { icon: <Gauge className="h-4 w-4" />, label: "Mileage", value: vehicle.specs?.mileage || "N/A" },
-          { icon: <Settings className="h-4 w-4" />, label: "Transmission", value: vehicle.specs?.transmission || "N/A" },
-          { icon: <Fuel className="h-4 w-4" />, label: "Fuel", value: vehicle.specs?.fuel || "N/A" },
-          { icon: <Calendar className="h-4 w-4" />, label: "Engine", value: vehicle.specs?.engine || "N/A" },
+          { icon: <Gauge className="h-4 w-4" />, label: t("common.mileage"), value: vehicle.specs?.mileage || t("vehicleDetail.na") },
+          { icon: <Settings className="h-4 w-4" />, label: t("common.transmission"), value: vehicle.specs?.transmission || t("vehicleDetail.na") },
+          { icon: <Fuel className="h-4 w-4" />, label: t("common.fuel"), value: vehicle.specs?.fuel || t("vehicleDetail.na") },
+          { icon: <Calendar className="h-4 w-4" />, label: t("vehicleDetail.engine"), value: vehicle.specs?.engine || t("vehicleDetail.na") },
         ].map((spec) => (
           <div key={spec.label} className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
             <span className="text-gray-400">{spec.icon}</span>
@@ -635,11 +644,11 @@ export function VehicleDetail() {
         {/* Bid History */}
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <h3 className="font-bold text-gray-900 mb-1">
-            {isAuctionEnded ? "Final Bids (Auction Ended)" : "Bid History"}
+            {isAuctionEnded ? t("vehicleDetail.finalBids") : t("vehicleDetail.bidHistory")}
           </h3>
           {isAuctionEnded && (
             <p className="text-xs text-gray-500 mb-4">
-              Bidder names and amounts are visible after auction end.
+              {t("vehicleDetail.bidderVisibleAfterEnd")}
             </p>
           )}
           {vehicle.bids && vehicle.bids.length > 0 ? (
@@ -648,45 +657,45 @@ export function VehicleDetail() {
                 <div key={bid.id ?? bid._id} className="flex justify-between items-center px-4 py-3 bg-gray-50 rounded-xl">
                   <span className="text-sm text-gray-700">
                     {isAuctionEnded && <span className="text-gray-400 mr-2">#{index + 1}</span>}
-                    {bid.bidderName ?? "Anonymous"}
+                    {bid.bidderName ?? t("vehicleDetail.anonymous")}
                   </span>
                   <span className="font-bold text-emerald-700">Rs. {bid.amount.toLocaleString()}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-8">No bids yet. Be the first!</p>
+            <p className="text-sm text-gray-400 text-center py-8">{t("vehicleDetail.noBidsYet")}</p>
           )}
         </div>
 
         {/* Seller Info */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
-          <h3 className="font-bold text-gray-900">Seller</h3>
+          <h3 className="font-bold text-gray-900">{t("vehicleDetail.seller")}</h3>
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg">
               {sellerName.charAt(0).toUpperCase()}
             </div>
             <div>
               <p className="font-semibold text-gray-900 text-sm">{sellerName}</p>
-              <div className="flex text-yellow-400 text-xs">{"â˜…".repeat(5)}</div>
+              <div className="flex text-yellow-400 text-xs">{"★".repeat(5)}</div>
             </div>
           </div>
           <div className="text-xs space-y-1.5 text-gray-600">
             <div className="flex justify-between">
-              <span>Condition</span>
+              <span>{t("common.condition")}</span>
               <span className="font-semibold text-gray-800">{vehicle.condition}</span>
             </div>
             <div className="flex justify-between">
-              <span>Category</span>
+              <span>{t("vehicleForm.category")}</span>
               <span className="font-semibold text-gray-800">{vehicle.category}</span>
             </div>
             <div className="flex justify-between">
-              <span>Min. increment</span>
+              <span>{t("vehicleDetail.minIncrement")}</span>
               <span className="font-semibold text-gray-800">Rs. 5,000</span>
             </div>
           </div>
           <button className="w-full py-2 border border-gray-300 text-sm text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
-            Contact Seller
+            {t("vehicleDetail.contactSeller")}
           </button>
         </div>
       </div>
@@ -705,7 +714,7 @@ export function VehicleDetail() {
               type="button"
               onClick={() => setIsImageModalOpen(false)}
               className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors"
-              aria-label="Close image preview"
+              aria-label={t("vehicleDetail.closeImagePreview")}
             >
               <X className="h-5 w-5" />
             </button>
@@ -724,7 +733,7 @@ export function VehicleDetail() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Place Your Bid</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t("vehicleDetail.placeYourBid")}</h2>
               <button onClick={() => setIsBidModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
                 <X className="h-5 w-5 text-gray-500" />
               </button>
@@ -733,21 +742,21 @@ export function VehicleDetail() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Current Bid</p>
+                  <p className="text-xs text-gray-500 mb-1">{t("common.currentBid")}</p>
                   <p className="font-bold text-gray-900">Rs. {currentPrice.toLocaleString()}</p>
                 </div>
                 <div className="p-3 bg-indigo-50 rounded-xl">
-                  <p className="text-xs text-indigo-500 mb-1">Min Next Bid</p>
+                  <p className="text-xs text-indigo-500 mb-1">{t("vehicleDetail.minNextBid")}</p>
                   <p className="font-bold text-indigo-700">Rs. {(currentPrice + 5000).toLocaleString()}</p>
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">Your Bid Amount (Rs.)</label>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">{t("vehicleDetail.yourBidAmount")}</label>
                 <input
                   type="text"
                   inputMode="numeric"
-                  placeholder="Enter amount"
+                  placeholder={t("vehicleDetail.enterAmount")}
                   value={formatBidAmountInput(bidAmount)}
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 text-lg font-semibold focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   onChange={(e) => setBidAmount(e.target.value.replace(/\D/g, ""))}
@@ -768,12 +777,12 @@ export function VehicleDetail() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">Custom Increment (Rs.)</label>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">{t("vehicleDetail.customIncrement")}</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     inputMode="numeric"
-                    placeholder="Enter increment (e.g. 15000)"
+                    placeholder={t("vehicleDetail.incrementPlaceholder")}
                     value={formatBidAmountInput(customIncrement)}
                     onChange={(e) => setCustomIncrement(e.target.value.replace(/\D/g, ""))}
                     className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
@@ -783,20 +792,20 @@ export function VehicleDetail() {
                     onClick={applyCustomIncrement}
                     className="px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-semibold transition-colors"
                   >
-                    Apply
+                    {t("vehicleDetail.apply")}
                   </button>
                 </div>
               </div>
 
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-                <strong>Note:</strong> Bid increase must be in Rs. 5,000 increments.
+                <strong>{t("vehicleDetail.note")}</strong> {t("vehicleDetail.bidIncreaseNote")}
               </div>
 
               <button
                 onClick={handlePlaceBid}
                 className="w-full py-3 bg-[#00a8e8] hover:bg-[#0096d1] text-white rounded-xl font-bold text-base transition-colors"
               >
-                Confirm Bid
+                {t("vehicleDetail.confirmBid")}
               </button>
             </div>
           </div>

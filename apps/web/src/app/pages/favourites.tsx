@@ -5,6 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { toast } from "sonner";
 import { auth } from "../../firebase/firebase";
 import { favoritesAPI, vehiclesAPI } from "../../services/api";
+import { useTranslation } from "react-i18next";
 
 type FavouriteVehicle = {
   id: string;
@@ -18,6 +19,7 @@ type FavouriteVehicle = {
 };
 
 export function Favourites() {
+  const { t } = useTranslation();
   const [favourites, setFavourites] = useState<FavouriteVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -80,9 +82,9 @@ export function Favourites() {
         return;
       }
       setFavourites((prev) => prev.filter((vehicle) => vehicle.id !== id));
-      toast.success("Removed from favourites");
+      toast.success(t("favourites.removed"));
     } catch {
-      toast.error("Failed to remove favourite");
+      toast.error(t("favourites.removeFailed"));
     }
   };
 
@@ -90,25 +92,25 @@ export function Favourites() {
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Heart className="h-6 w-6 text-red-500 fill-red-500" />
-        <h1 className="text-2xl font-bold text-gray-900">My Favourites</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("favourites.title")}</h1>
       </div>
 
       {loading ? (
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-600">Loading favourites...</p>
+          <p className="text-gray-600">{t("favourites.loading")}</p>
         </div>
       ) : !isAuthenticated ? (
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-600">Please sign in to view favourites.</p>
+          <p className="text-gray-600">{t("favourites.loginPrompt")}</p>
           <Link to="/auth" className="inline-block mt-3 text-[#00a8e8] hover:underline">
-            Sign in
+            {t("auth.signIn")}
           </Link>
         </div>
       ) : favourites.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-600">No favourite vehicles yet.</p>
+          <p className="text-gray-600">{t("favourites.empty")}</p>
           <Link to="/" className="inline-block mt-3 text-[#00a8e8] hover:underline">
-            Browse vehicles
+            {t("favourites.browse")}
           </Link>
         </div>
       ) : (
@@ -122,7 +124,7 @@ export function Favourites() {
                 type="button"
                 onClick={() => handleRemove(vehicle.id)}
                 className="absolute top-3 right-3 p-1.5 rounded-full border border-gray-200 hover:bg-gray-50"
-                aria-label="Remove from favourites"
+                aria-label={t("favourites.removeAria")}
               >
                 <Trash2 className="h-4 w-4 text-red-500" />
               </button>
@@ -143,7 +145,7 @@ export function Favourites() {
                     <p className="text-lg font-bold text-green-700">
                       Rs. {vehicle.currentPrice.toLocaleString()}
                     </p>
-                    <p className="text-sm text-gray-600">{vehicle.bidsCount} bids</p>
+                    <p className="text-sm text-gray-600">{vehicle.bidsCount} {t("common.bids")}</p>
                     <div className="flex items-center gap-1 text-sm text-gray-600">
                       <MapPin className="h-4 w-4" />
                       <span>{vehicle.location}</span>

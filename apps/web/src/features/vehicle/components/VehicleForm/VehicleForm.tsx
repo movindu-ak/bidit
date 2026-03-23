@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 
 import { vehiclesAPI } from "../../../../services/api";
 import { auth } from "../../../../firebase/firebase";
@@ -26,6 +27,7 @@ import { MediaUploadSection } from "./MediaUploadSection";
  * Validation: field-level errors via `validateVehicleForm` before submission.
  */
 export function VehicleForm() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -71,7 +73,7 @@ export function VehicleForm() {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (imageFiles.length + files.length > 6) {
-      toast.error("Maximum 6 images allowed");
+      toast.error(t("vehicleForm.toast.maxImages"));
       return;
     }
     setImageFiles((prev) => [...prev, ...files]);
@@ -96,7 +98,7 @@ export function VehicleForm() {
 
     const currentUser = auth.currentUser;
     if (!currentUser) {
-      toast.error("Please login to post a vehicle");
+      toast.error(t("vehicleForm.toast.loginRequired"));
       navigate("/auth");
       return;
     }
@@ -105,7 +107,7 @@ export function VehicleForm() {
     const validationErrors = validateVehicleForm(vehicle);
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
-      toast.error("Please fix the highlighted errors");
+      toast.error(t("vehicleForm.toast.fixErrors"));
       return;
     }
     setErrors({});
@@ -162,7 +164,7 @@ export function VehicleForm() {
       if (response.error) {
         toast.error(response.error);
       } else {
-        toast.success("Vehicle listing created successfully!");
+        toast.success(t("vehicleForm.toast.created"));
         const createdVehicleId = response?.vehicle?._id || response?.vehicle?.id;
         if (createdVehicleId) {
           navigate(`/vehicle/${createdVehicleId}`, { replace: true });
@@ -172,7 +174,7 @@ export function VehicleForm() {
       }
     } catch (error: any) {
       console.error("Create vehicle error:", error);
-      toast.error(error.message || "Failed to create listing");
+      toast.error(error.message || t("vehicleForm.toast.createFailed"));
     } finally {
       setLoading(false);
     }
@@ -240,10 +242,10 @@ export function VehicleForm() {
           {loading ? (
             <>
               <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-              Submitting...
+              {t("vehicleForm.submitting")}
             </>
           ) : (
-            "Submit Listing"
+            t("vehicleForm.submitListing")
           )}
         </button>
       </div>

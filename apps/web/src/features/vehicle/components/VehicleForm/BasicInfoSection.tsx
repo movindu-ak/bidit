@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { LocationPicker } from "../../../../shared/components/LocationPicker";
 import { InputField } from "../inputs/InputField";
 import { SelectField } from "../inputs/SelectField";
@@ -30,6 +31,7 @@ export function BasicInfoSection({
   onChange,
   onLocationSelect,
 }: BasicInfoSectionProps) {
+  const { t } = useTranslation();
   const knownBrands = BRAND_GROUPS.flatMap((group) =>
     group.options.map((option) => String(option.value))
   );
@@ -54,31 +56,31 @@ export function BasicInfoSection({
   return (
     <div className="space-y-4">
       <h3 className="font-bold text-gray-900 text-base border-b pb-2">
-        Vehicle Information
+        {t("vehicleForm.basicInfo")}
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Make */}
         <div>
           <SelectField
-            label="Make"
+            label={t("vehicleForm.make")}
             name="make"
             value={makeSelectValue}
             onChange={handleMakeSelectChange}
             groups={BRAND_GROUPS}
-            extraOption={{ value: "__custom_brand__", label: "Other (Enter custom brand)" }}
+            extraOption={{ value: "__custom_brand__", label: t("vehicleForm.otherCustomBrand") }}
             required
-            placeholder="Select brand"
+            placeholder={t("vehicleForm.selectBrand")}
           />
           {makeSelectValue === "__custom_brand__" && (
             <div className="mt-2">
               <InputField
-                label="Custom Brand"
+                label={t("vehicleForm.customBrand")}
                 name="make"
                 value={vehicle.make}
                 onChange={onChange}
                 required
-                placeholder="Enter brand name"
+                placeholder={t("vehicleForm.enterBrandName")}
               />
             </div>
           )}
@@ -90,12 +92,12 @@ export function BasicInfoSection({
         {/* Model */}
         <div>
           <InputField
-            label="Model"
+            label={t("vehicleForm.model")}
             name="model"
             value={vehicle.model}
             onChange={onChange}
             required
-            placeholder="e.g. Corolla"
+            placeholder={t("vehicleForm.modelPlaceholder")}
           />
           {errors.model && (
             <p className="text-xs text-red-500 mt-1">{errors.model}</p>
@@ -104,7 +106,7 @@ export function BasicInfoSection({
 
         {/* Year of Manufacture */}
         <SelectField
-          label="Year of Manufacture"
+          label={t("vehicleForm.yearOfManufacture")}
           name="yearManufactured"
           value={vehicle.yearManufactured}
           onChange={onChange}
@@ -113,7 +115,7 @@ export function BasicInfoSection({
 
         {/* Year of Registration */}
         <SelectField
-          label="Year of Registration"
+          label={t("vehicleForm.yearOfRegistration")}
           name="yearRegistered"
           value={vehicle.yearRegistered}
           onChange={onChange}
@@ -122,7 +124,7 @@ export function BasicInfoSection({
 
         {/* Condition */}
         <SelectField
-          label="Condition"
+          label={t("vehicleForm.condition")}
           name="condition"
           value={vehicle.condition}
           onChange={onChange}
@@ -131,7 +133,7 @@ export function BasicInfoSection({
 
         {/* Mileage */}
         <InputField
-          label="Mileage (km)"
+          label={t("vehicleForm.mileageKm")}
           name="mileage"
           value={vehicle.mileage}
           onChange={onChange}
@@ -142,18 +144,18 @@ export function BasicInfoSection({
 
         {/* Engine Capacity */}
         <InputField
-          label="Engine Capacity (cc)"
+          label={t("vehicleForm.engineCapacity")}
           name="engineCC"
           value={vehicle.engineCC}
           onChange={onChange}
           type="number"
-          placeholder="e.g. 1500"
+          placeholder={t("vehicleForm.enginePlaceholder")}
           required
         />
 
         {/* Category */}
         <SelectField
-          label="Category"
+          label={t("vehicleForm.category")}
           name="category"
           value={vehicle.category}
           onChange={onChange}
@@ -163,7 +165,7 @@ export function BasicInfoSection({
 
       {/* Location */}
       <div>
-        <label className="block text-sm text-gray-700 mb-1">Location</label>
+        <label className="block text-sm text-gray-700 mb-1">{t("common.location")}</label>
         <LocationPicker
           value={vehicle.location}
           onLocationSelect={({ address }: { address: string; lat: number; lng: number }) => onLocationSelect(address)}
